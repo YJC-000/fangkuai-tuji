@@ -1,0 +1,1955 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>方块突击 · 3D枪战</title>
+<!-- ===== PWA支持：手机/平板可添加到主屏幕，像装了App一样全屏启动 ===== -->
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#0b0e14">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#0b0e14;font-family:'Microsoft YaHei',sans-serif;user-select:none;touch-action:none}
+canvas{display:block;width:100%;height:100%}
+.hidden{display:none!important}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(8,10,16,.88);z-index:50;color:#e6edf3}
+h1{font-size:52px;letter-spacing:6px;background:linear-gradient(90deg,#4fc3f7,#81c784,#ffb74d);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:8px}
+.subtitle{color:#8b98a9;margin-bottom:36px;letter-spacing:2px}
+.modes{display:flex;gap:22px;margin-bottom:34px;flex-wrap:wrap;justify-content:center}
+.mode-card{width:220px;padding:24px 20px;border:1px solid #2a3442;border-radius:14px;background:linear-gradient(160deg,#141a24,#0e131b);cursor:pointer;transition:.2s;text-align:center}
+.mode-card:hover{transform:translateY(-6px);border-color:#4fc3f7;box-shadow:0 12px 40px rgba(79,195,247,.25)}
+.mode-card h2{font-size:22px;margin-bottom:10px;color:#4fc3f7}
+.mode-card p{font-size:13px;color:#9aa7b8;line-height:1.6}
+.help{font-size:14px;color:#7d8a9c;line-height:2;text-align:center}
+.help b{color:#cfd8e3;background:#1c2531;padding:2px 8px;border-radius:6px;border:1px solid #2f3b4c;margin:0 2px}
+.btn{padding:12px 34px;font-size:16px;border-radius:10px;border:1px solid #4fc3f7;background:rgba(79,195,247,.12);color:#bfe8ff;cursor:pointer;margin:6px}
+.btn:hover{background:rgba(79,195,247,.3)}
+.btn.gray{border-color:#5b6a7d;color:#c4cfdb;background:rgba(255,255,255,.05)}
+#netpanel input{display:block;width:340px;max-width:90%;margin:10px auto;padding:12px 16px;border-radius:10px;border:1px solid #3a4657;background:#141a24;color:#e6edf3;font-size:15px;text-align:center;outline:none}
+#netpanel input:focus{border-color:#4fc3f7}
+#netStatus{min-height:22px;margin-top:14px;color:#ffd54f;font-size:14px}
+.stats{font-size:18px;line-height:2.1;color:#cfd8e3;margin-bottom:24px;text-align:center}
+.stats span{color:#ffd54f;font-weight:bold}
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#crosshair{position:fixed;left:50%;top:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,255,255,.9);box-shadow:0 0 3px #000}
+#crosshair::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
+#crosshair::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
+#hitmarker{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) rotate(45deg);font-size:26px;color:#ff5252;font-weight:bold;opacity:0;transition:opacity .1s}
+#hpwrap{position:fixed;left:28px;bottom:26px;width:260px}
+#hpbar{height:16px;background:rgba(0,0,0,.5);border:1px solid #3a4657;border-radius:8px;overflow:hidden}
+#hpfill{height:100%;width:100%;background:linear-gradient(90deg,#66bb6a,#9ccc65);transition:width .15s}
+#hptext{margin-top:5px;color:#e6edf3;font-size:14px;text-shadow:0 1px 2px #000}
+#ammo{position:fixed;right:32px;bottom:24px;font-size:34px;color:#e6edf3;font-weight:bold;text-shadow:0 2px 4px #000;font-family:Consolas,monospace}
+#ammo small{font-size:16px;color:#8b98a9}
+#info{position:fixed;top:18px;left:50%;transform:translateX(-50%);font-size:18px;color:#ffd54f;text-shadow:0 1px 3px #000;background:rgba(0,0,0,.35);padding:8px 22px;border-radius:20px;border:1px solid rgba(255,213,79,.3);pointer-events:none;z-index:20}
+#msg{position:fixed;top:24%;left:50%;transform:translateX(-50%);font-size:34px;color:#fff;text-shadow:0 0 18px rgba(79,195,247,.9);opacity:0;transition:opacity .3s;letter-spacing:3px;pointer-events:none;z-index:20}
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 52%,rgba(255,0,0,.65) 100%);opacity:0;transition:opacity .3s}
+#lowhp{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,0,0,.5) 100%);display:none;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:.15}50%{opacity:.5}}
+#scope{position:fixed;inset:0;pointer-events:none;display:none;background:radial-gradient(circle,transparent 28%,#000 30%);z-index:15}
+#scope::before,#scope::after{content:'';position:absolute;background:rgba(255,255,255,.6)}
+#scope::before{width:1px;height:100%;left:50%}#scope::after{height:1px;width:100%;top:50%}
+#minimap{position:fixed;bottom:80px;right:24px;width:150px;height:150px;border-radius:50%;border:2px solid #4a5a6a;background:rgba(0,0,0,.7);overflow:hidden;pointer-events:none;z-index:12}
+#minimap canvas{width:100%;height:100%;display:block}
+#weapon_hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);color:#ffd700;font-size:14px;background:rgba(0,0,0,.5);padding:4px 14px;border-radius:12px;border:1px solid #ffd70066;display:none;z-index:11}
+
+/* ===== 手机触摸控件（和平精英式布局，横屏优先）===== */
+#touch-controls{position:fixed;inset:0;pointer-events:none;z-index:30;display:none}
+#touch-controls.active{display:block}
+/* 通用圆形虚拟按钮 */
+.tc-btn{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.32);background:rgba(18,26,38,.45);color:#fff;display:flex;align-items:center;justify-content:center;touch-action:none;pointer-events:auto;user-select:none;-webkit-user-select:none;font-weight:bold;text-align:center;line-height:1.05;box-shadow:0 4px 14px rgba(0,0,0,.55),inset 0 0 12px rgba(255,255,255,.08);backdrop-filter:blur(2px)}
+.tc-btn:active{transform:scale(.9);background:rgba(90,140,220,.6)}
+/* 左下：移动摇杆 */
+#joystick-area{position:absolute;left:34px;bottom:40px;width:132px;height:132px;pointer-events:auto;touch-action:none}
+#joystick-base{width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.13);border:2px solid rgba(255,255,255,.28);position:relative}
+#joystick-thumb{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.8),rgba(180,200,230,.5));position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(0,0,0,.4)}
+/* 右下：开火（最大） */
+#fire-btn{right:40px;bottom:46px;width:98px;height:98px;font-size:24px;background:rgba(255,56,56,.55);border-color:rgba(255,120,120,.85)}
+/* 开火左上：开镜 */
+#aim-btn{right:160px;bottom:116px;width:74px;height:74px;font-size:20px}
+/* 再靠左：跳跃（右手横移或左手指可及） */
+#jump-btn{right:252px;bottom:66px;width:78px;height:78px;font-size:22px;background:rgba(110,165,255,.42);border-color:rgba(150,200,255,.75)}
+/* 开火正上方：换弹 */
+#reload-btn{right:92px;bottom:168px;width:60px;height:60px;font-size:17px}
+/* 开镜上方：切枪 */
+#weapon-btn{right:196px;bottom:202px;width:60px;height:60px;font-size:16px}
+/* 顶部靠右：暂停（小地图左侧） */
+#pause-btn{top:14px;right:176px;bottom:auto;width:44px;height:44px;font-size:18px;background:rgba(0,0,0,.42)}
+#view-area{position:absolute;inset:0;pointer-events:auto;touch-action:none}
+
+/* 触屏设备：HUD 上移，给下方按键腾位置（由 JS 给 body 加 .touch-mode，真机与 ?touch=1 均生效）*/
+body.touch-mode #hpwrap{left:18px;top:14px;bottom:auto;width:190px}
+body.touch-mode #minimap{top:12px;right:14px;bottom:auto;width:92px;height:92px}
+body.touch-mode #ammo{right:150px;bottom:42px;font-size:26px}
+body.touch-mode #weapon_hint{bottom:210px}
+/* 竖屏（手机竖着拿）：按钮整体收紧，避免重叠 */
+@media (orientation: portrait){
+  body.touch-mode #joystick-area{left:22px;bottom:30px;width:118px;height:118px}
+  body.touch-mode #joystick-base{width:118px;height:118px}
+  body.touch-mode #joystick-thumb{width:52px;height:52px}
+  body.touch-mode #fire-btn{right:26px;bottom:34px;width:88px;height:88px;font-size:22px}
+  body.touch-mode #aim-btn{right:130px;bottom:96px;width:64px;height:64px;font-size:18px}
+  body.touch-mode #jump-btn{right:206px;bottom:50px;width:68px;height:68px;font-size:20px}
+  body.touch-mode #reload-btn{right:74px;bottom:140px;width:54px;height:54px;font-size:15px}
+  body.touch-mode #weapon-btn{right:158px;bottom:168px;width:54px;height:54px;font-size:14px}
+  body.touch-mode #pause-btn{right:150px}
+  body.touch-mode #hpwrap{width:150px}
+  body.touch-mode #minimap{width:78px;height:78px}
+  body.touch-mode #ammo{right:128px;bottom:34px;font-size:22px}
+}
+/* 窄屏兜底（非触屏小窗口也保持菜单可读） */
+@media (max-width: 768px){
+  .mode-card{width:160px;padding:16px}
+  h1{font-size:32px}
+  .overlay{padding:16px}
+  #info{font-size:14px;padding:4px 14px}
+}
+
+/* ===== 设置面板 ===== */
+.setting-row{display:flex;align-items:center;justify-content:center;gap:14px;margin:14px 0;flex-wrap:wrap;color:#e6edf3;font-size:17px}
+.setting-row label{min-width:120px;text-align:right}
+.setting-row input[type=range]{width:220px;accent-color:#4fc3f7}
+.setting-row .val{min-width:56px;text-align:left;color:#4fc3f7;font-family:Consolas,monospace}
+.key-bind-btn{min-width:110px;padding:8px 16px;border-radius:10px;border:2px solid #4fc3f7;background:rgba(79,195,247,.15);color:#fff;font-size:16px;cursor:pointer}
+.key-bind-btn.listening{background:#ff9800;border-color:#ffb74d;animation:pulse 1s infinite}
+.setting-group{width:100%;max-width:560px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:10px 18px;margin:10px 0}
+.setting-group h3{margin:8px 0 2px;color:#ffd54f;font-size:18px}
+.setting-hint{color:#9fb0c3;font-size:13px;margin:2px 0 8px}
+
+/* ===== 手机按键布局编辑器 ===== */
+#layoutEditor{position:fixed;inset:0;z-index:200;display:none;background:rgba(8,14,22,.82)}
+#layoutEditor.active{display:block}
+#layoutEditor .le-tip{position:fixed;top:10px;left:50%;transform:translateX(-50%);color:#fff;font-size:15px;background:rgba(0,0,0,.55);padding:8px 18px;border-radius:16px;text-align:center;z-index:5}
+#layoutEditor .le-bar{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.6);padding:10px 14px;border-radius:16px;z-index:5;flex-wrap:wrap;justify-content:center;max-width:96vw}
+#layoutEditor .le-bar button{padding:9px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.12);color:#fff;font-size:15px;cursor:pointer}
+#layoutEditor .le-bar button.primary{background:#43a047;border-color:#66bb6a}
+#layoutEditor .le-bar button.danger{background:#e53935;border-color:#ef5350}
+#layoutEditor .le-bar input[type=range]{width:130px;accent-color:#4fc3f7}
+#touch-controls.editing{display:block!important;z-index:201}
+#touch-controls.editing #view-area{pointer-events:none}
+#touch-controls.editing .tc-btn,#touch-controls.editing #joystick-area{outline:2px dashed rgba(79,195,247,.9);outline-offset:2px;cursor:grab;touch-action:none}
+#touch-controls.editing .le-selected{outline:2px solid #ffd54f!important;box-shadow:0 0 18px rgba(255,213,79,.7)!important}
+</style>
+</head>
+<body>
+
+<div id="hud" class="hidden">
+  <div id="crosshair"></div><div id="hitmarker">✕</div>
+  <div id="scope"></div>
+  <div id="hpwrap"><div id="hpbar"><div id="hpfill"></div></div><div id="hptext">HP 100</div></div>
+  <div id="ammo">30 <small>/ ∞</small></div>
+  <div id="info"></div><div id="msg"></div><div id="vignette"></div><div id="lowhp"></div>
+  <div id="minimap"><canvas id="mmap" width="150" height="150"></canvas></div>
+  <div id="weapon_hint">🔫 AK-47</div>
+</div>
+
+<div id="touch-controls">
+  <div id="view-area"></div>
+  <div id="joystick-area">
+    <div id="joystick-base">
+      <div id="joystick-thumb"></div>
+    </div>
+  </div>
+  <button id="jump-btn" class="tc-btn">跳</button>
+  <button id="weapon-btn" class="tc-btn">切枪</button>
+  <button id="reload-btn" class="tc-btn">换弹</button>
+  <button id="aim-btn" class="tc-btn">开镜</button>
+  <button id="fire-btn" class="tc-btn">开火</button>
+  <button id="pause-btn" class="tc-btn">⏸</button>
+</div>
+
+<div id="menu" class="overlay" style="display:flex;">
+  <h1>方块突击</h1>
+  <div class="subtitle">3D 第一人称射击 · 消灭红色机械敌人</div>
+  <div class="modes">
+    <div class="mode-card" onclick="startGame(1)"><h2>🛡️ 生存模式</h2><p>敌人固定 6 只、杀一只补一只，越打越刺激，尽可能活得更久！</p></div>
+    <div class="mode-card" onclick="startGame(2)"><h2>🎯 歼灭模式</h2><p>猎杀 25 名敌人即可获胜，利用掩体和高台占据优势！</p></div>
+    <div class="mode-card" onclick="startGame(3)"><h2>⏱️ 限时模式</h2><p>90 秒极限挑战，疯狂击杀冲击最高得分！</p></div>
+    <div class="mode-card" onclick="showNetPanel()"><h2>🌐 联机模式</h2><p>和朋友同图对战，或创建「合作房」一起打怪物！</p></div>
+  </div>
+  <div style="margin-top:14px"><button class="btn" onclick="openSettings()">⚙️ 游戏设置（改键 / 灵敏度 / 手机按键）</button></div>
+  <div class="help"><b>W A S D</b> 移动 <b>空格</b> 跳跃 <b>左键</b> 射击 <b>右键</b> 瞄准 <b>R</b> 换弹 <b>1/2</b> 切换武器 <b>双击W</b> 疾跑 <b>Esc</b> 暂停</div>
+</div>
+
+<div id="netpanel" class="overlay hidden">
+  <h1>局域网联机 · 房间</h1>
+  <div class="subtitle">和朋友输入<b style="color:#4fc3f7">相同的房间号</b>，就能进到同一个房间</div>
+  <div>
+    <input id="netaddr" placeholder="服务器地址（一般已自动填好，不用改）">
+    <input id="netname" placeholder="你的昵称（可留空）">
+    <!-- 【新增·房间系统】房间号输入框：相同房间号的玩家进入同一房间 -->
+    <input id="netroom" placeholder="房间号（如 8888，和朋友填一样的）" inputmode="numeric" maxlength="16">
+  </div>
+  <div>
+    <!-- 【新增·房间系统】用“创建房间 / 加入房间”两个按钮替代原来的单一连接按钮 -->
+    <button class="btn" id="netCreateBtn">➕ 创建房间</button>
+    <button class="btn" id="netCoopCreateBtn">🤝 创建合作房（一起打怪物）</button>
+    <button class="btn" id="netJoinBtn">🚪 加入房间</button>
+    <button class="btn gray" id="netBackBtn">⬅ 返回</button>
+  </div>
+  <div id="netStatus"></div>
+</div>
+
+<div id="pause" class="overlay hidden">
+  <h1 style="font-size:40px">已暂停</h1>
+  <div><button class="btn" id="resumeBtn">▶ 继续游戏</button><button class="btn gray" id="quitBtn">🏠 返回主菜单</button></div>
+  <div style="margin-top:12px"><button class="btn gray" onclick="openSettings()">⚙️ 设置</button></div>
+</div>
+
+<div id="over" class="overlay hidden">
+  <h1 id="overTitle" style="font-size:44px">游戏结束</h1>
+  <div class="stats" id="overStats"></div>
+  <div><button class="btn" id="retryBtn">🔄 再来一局</button><button class="btn gray" id="menuBtn">🏠 返回主菜单</button></div>
+</div>
+
+<div id="settings" class="overlay hidden">
+  <h1 style="font-size:34px">⚙️ 游戏设置</h1>
+  <div class="setting-group">
+    <h3>🖥️ 电脑操作</h3>
+    <div class="setting-row">
+      <label>跳跃键</label>
+      <button class="key-bind-btn" id="jumpKeyBtn">空格</button>
+      <span class="setting-hint" style="margin:0">点一下，再按想要的键</span>
+    </div>
+    <div class="setting-row">
+      <label>鼠标灵敏度</label>
+      <input type="range" id="mouseSensRange" min="0.3" max="3" step="0.05" value="1">
+      <span class="val" id="mouseSensVal">1.0x</span>
+    </div>
+  </div>
+  <div class="setting-group" id="touchSettingGroup">
+    <h3>📱 手机 / 平板</h3>
+    <div class="setting-row">
+      <label>转视角灵敏度</label>
+      <input type="range" id="touchSensRange" min="0.3" max="3" step="0.05" value="1">
+      <span class="val" id="touchSensVal">1.0x</span>
+    </div>
+    <div class="setting-row">
+      <button class="btn" onclick="openLayoutEditor()">✋ 自定义按键位置 / 大小</button>
+    </div>
+    <div class="setting-hint">进去后拖动任意按键改位置，点中后用下方滑块改大小，记得保存。</div>
+  </div>
+  <div><button class="btn" onclick="closeSettings()">✔ 完成并保存</button></div>
+</div>
+
+<div id="layoutEditor">
+  <div class="le-tip">拖动按键改位置 · 点中按键后用下方滑块改大小<br>点空白处取消选中</div>
+  <div class="le-bar">
+    <span style="color:#fff;font-size:14px">大小</span>
+    <input type="range" id="leSizeRange" min="0.7" max="1.6" step="0.05" value="1">
+    <button id="leResetOne">重置选中</button>
+    <button class="danger" id="leResetAll">全部默认</button>
+    <button class="primary" id="leSave">💾 保存</button>
+    <button id="leExit">退出</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script>
+// ================= 常量与状态 =================
+const GRAVITY=22, JUMP_V=8.6, WALK=6, RUN=8.5;
+const EYE=1.6, P_HEIGHT=1.7, P_RADIUS=0.4;
+// 【地图加大】默认 400；联机对战房用 220 小地图（两人打不需要那么大）
+let mapSize=400;
+
+let scene,camera,renderer,clock,raycaster,groundMesh;
+let yaw=0,pitch=0,keys={},firing=false,fireTimer=0,flashTimer=0;
+let ammo=0,reserve=0,reloading=false,reloadTimer=0;
+let boltTimer=0;
+let ads=false, targetFov=75, currentFov=75;
+let currentWeaponType='rifle';
+let isSprinting=false;
+let gameState='menu',paused=false,mode=1,kills=0,score=0;
+// 触屏设备检测（手机/平板）：满足任一即认为是触屏，启用虚拟摇杆与按钮；?touch=1 可强制开启（用于电脑预览）
+const IS_TOUCH = location.search.indexOf('touch=1')>=0 || ('ontouchstart' in window) || (navigator.maxTouchPoints>0) || (window.matchMedia && matchMedia('(pointer: coarse)').matches);
+// ===== 玩家设置（改键 / 灵敏度 / 手机按键布局），localStorage 持久化 =====
+const SETTINGS_KEY='gun_settings_v2', BASE_SENS=0.0022, TOUCH_BASE_SENS=0.0022*2.1; // 触屏新版1x=旧版2.1x
+// 手机默认按键布局（按玩家提供的横屏键位标定：归一化左上角坐标 + 相对缩放，以开火键为大小基准）
+const DEFAULT_TOUCH_LAYOUT={
+  'joystick-area':{nx:0.053,ny:0.568,s:1.25},
+  'fire-btn':    {nx:0.873,ny:0.582,s:1.00},
+  'aim-btn':     {nx:0.746,ny:0.505,s:1.29},
+  'jump-btn':    {nx:0.756,ny:0.768,s:1.02},
+  'reload-btn':  {nx:0.860,ny:0.378,s:1.19},
+  'weapon-btn':  {nx:0.636,ny:0.789,s:1.29},
+  'pause-btn':   {nx:0.733,ny:0.028,s:1.23}
+};
+const DEFAULT_SETTINGS={jumpKey:'Space',mouseMul:1,touchMul:1,touchLayout:JSON.parse(JSON.stringify(DEFAULT_TOUCH_LAYOUT))};
+let settings=loadSettings();
+function loadSettings(){
+  try{const s=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}');return Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),s);}
+  catch(e){return JSON.parse(JSON.stringify(DEFAULT_SETTINGS));}
+}
+function saveSettings(){try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){}}
+let touchJump=false; // 手机跳跃键状态（独立于键盘，直接映射到跳跃动作）
+// 可自定义布局的触屏控件
+const LAYOUT_IDS=['joystick-area','fire-btn','aim-btn','jump-btn','reload-btn','weapon-btn','pause-btn'];
+let wave=0,betweenWaves=false,waveTimer=0,timeSurvived=0;
+// ===== 【新增·合作模式】双人一起打怪物（代替双人对战） =====
+let netCoop=false;        // 是否联机合作打怪（服务器在 welcome 中告知房间类型）
+let netMonsters=false;    // 房间是否刷怪物（合作房/对战房都是true）
+let coopDowned=false;     // 本地玩家是否倒地（血量归零，等队友来救）
+let coopReviveT=0;        // 正在救援倒地队友的累计秒数（碰满 5 秒复活）
+const coopEnemies=[], coopEnemyMap={}, coopBallMap={}; // 服务器托管的怪物与红球
+let quota=25,spawnedCount=0,spawnTimer=0,timeLeft=90;
+const MAX_ENEMIES=30;          // 【持续刷怪】场上敌人数量上限（保护性能）
+let spawnInterval=8;          // 【持续刷怪】自动刷怪间隔（秒），每刷一只都会缩短
+let msgTimer=0,hitTimer=0,damageFlash=0,lastHurt=99,shake=0;
+let wDoublePressTimer=null,wPressTime=0,wPressed=false;
+let joystickX=0,joystickY=0;
+let gun,flashMesh,gunKick=0,bobT=0;
+const player={pos:new THREE.Vector3(0,0,0),vel:new THREE.Vector3(),hp:100,onGround:false};
+const obstacles=[],enemies=[],enemyBullets=[],particles=[],tracers=[];
+// ===== 【新增·拾取系统】可拾取物品（弹药/医疗包）+ 随机地图状态 =====
+const items=[];
+let mapSeed=(Math.random()*1e9)|0;   // 本局地图随机种子（联机由服务器下发，保证所有人同一张图）
+let innerBoxes=[];                    // 建筑物内部空腔（敌人出生/物品生成都要避开，防止被困或卡进楼里）
+let itemTimer=0;                      // 单机模式下定时刷新物品的计时器
+let shootables=[];
+const $=id=>document.getElementById(id);
+const hudEl=$('hud'),menuEl=$('menu'),pauseEl=$('pause'),overEl=$('over');
+const hpFill=$('hpfill'),hpText=$('hptext'),ammoEl=$('ammo'),infoEl=$('info'),msgEl=$('msg'),vignEl=$('vignette'),hitEl=$('hitmarker'),lowhpEl=$('lowhp'),mmapCanvas=$('mmap'),weaponHint=$('weapon_hint');
+const MODES={1:'生存模式',2:'歼灭模式',3:'限时模式'};
+
+const WEAPONS = {
+  ak47: { name:'AK-47', icon:'🔫', type:'rifle', damage:34, headMul:2.2, rpm:600, mag:30, reserve:90, reload:2.5, recoilP:0.028, recoilY:0.018, spread:0.016, adsFov:40, range:85, auto:true },
+  awp: { name:'AWP', icon:'🎯', type:'sniper', damage:150, headMul:1.0, rpm:40, mag:7, reserve:28, reload:3.5, recoilP:0.12, recoilY:0.04, spread:0.001, adsFov:30, range:300, auto:false, scope:true },
+};
+let currentWeaponId='ak47', currentWeapon=WEAPONS.ak47;
+// 【新增·拾取系统】每种武器各自的备用弹药（切枪不再重置，捡到的子弹能保留）
+let reserves={ak47:WEAPONS.ak47.reserve, awp:WEAPONS.awp.reserve};
+
+// ===== 局域网联机状态 =====
+let net=null, netId=null, netDead=false, netRespawnTimer=0, netSpawn=null;
+let lastHitBy=null; // 联机：最后一次击中自己的玩家，用于击杀者归属判定
+const netPlayers={};
+const NET_INTERVAL=50;
+
+// ================= 音效 =================
+let AC=null;
+function ac(){if(!AC)AC=new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC;}
+function tone(f0,f1,dur,type,vol){try{const c=ac(),o=c.createOscillator(),g=c.createGain(),t=c.currentTime;
+o.type=type;o.frequency.setValueAtTime(f0,t);if(f1)o.frequency.exponentialRampToValueAtTime(Math.max(f1,1),t+dur);
+g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+dur);}catch(e){}}
+const sfx={
+  shoot(){tone(320,70,0.12,'sawtooth',0.10);},
+  eshoot(){tone(480,220,0.14,'square',0.04);},
+  hit(){tone(750,520,0.06,'square',0.07);},
+  kill(){tone(420,60,0.28,'sawtooth',0.12);},
+  hurt(){tone(170,80,0.22,'triangle',0.16);},
+  empty(){tone(950,900,0.05,'square',0.05);},
+  reload(){tone(480,300,0.08,'square',0.06);setTimeout(()=>tone(380,560,0.08,'square',0.06),650);setTimeout(()=>tone(560,760,0.09,'square',0.07),1350);}
+};
+
+// ================= 初始化 =================
+function init(){
+  console.log('init called');
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x93a8bb);
+  scene.fog=new THREE.Fog(0x93a8bb,80,320);
+  camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,600);
+  camera.rotation.order='YXZ';
+  scene.add(camera);
+  renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  document.body.appendChild(renderer.domElement);
+  clock=new THREE.Clock();
+  raycaster=new THREE.Raycaster(); raycaster.far=600;
+  scene.add(new THREE.HemisphereLight(0xcfe4f7,0x4a4238,0.85));
+  const sun=new THREE.DirectionalLight(0xffe3b3,0.9);
+  sun.position.set(40,60,25); sun.castShadow=true;
+  sun.shadow.mapSize.set(2048,2048);
+  sun.shadow.camera.left=-260;sun.shadow.camera.right=260;sun.shadow.camera.top=260;sun.shadow.camera.bottom=-260;sun.shadow.camera.far=420;
+  scene.add(sun);
+  groundMesh=new THREE.Mesh(new THREE.PlaneGeometry(mapSize*2,mapSize*2),new THREE.MeshStandardMaterial({color:0x596b56,roughness:1}));
+  groundMesh.rotation.x=-Math.PI/2; groundMesh.receiveShadow=true;
+  scene.add(groundMesh);
+  const grid=new THREE.GridHelper(mapSize*2,64,0x33402f,0x33402f);
+  grid.material.transparent=true;grid.material.opacity=0.25;grid.position.y=0.02;
+  scene.add(grid);
+  buildMap(mapSeed); buildGun(); bindEvents();
+  rebuildShootables();
+  animate();
+  // 检测触屏设备，显示触摸控件
+  if(IS_TOUCH){
+    document.getElementById('touch-controls').classList.add('active');
+    document.body.classList.add('touch-mode');
+  }
+}
+
+function addObstacle(x,y,z,w,h,d,color,shape){
+  /* 【障碍形状多样化】shape 缺省为 box 方块；传 'cyl' 生成圆柱（碰撞用方形包围盒，方块游戏可接受）*/
+  let mesh;
+  if(shape==='cyl'){
+    mesh=new THREE.Mesh(new THREE.CylinderGeometry(w/2,w/2,h,10),new THREE.MeshStandardMaterial({color,roughness:.85}));
+    mesh.position.set(x,y+h/2,z);
+  }else{
+    mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:.85}));
+    mesh.position.set(x,y+h/2,z);
+  }
+  mesh.castShadow=mesh.receiveShadow=true;
+  scene.add(mesh);
+  // 【碰撞修复】碰撞盒必须带尺寸：圆柱 x/z 半宽都是 w/2，方块 x 半宽 w/2、z 半宽 d/2
+  // （之前方块这里 rr=0，导致碰撞盒是零尺寸，玩家/敌人/子弹全部直接穿模，楼梯楼顶都进不去）
+  const rrx=(shape==='cyl'?w/2:w/2);
+  const rrz=(shape==='cyl'?w/2:d/2);
+  const ob={mesh,cyl:shape==='cyl',
+    min:new THREE.Vector3(x-rrx,y,z-rrz),
+    max:new THREE.Vector3(x+rrx,y+h,z+rrz)};
+  obstacles.push(ob);
+  return ob;
+}
+
+// ===== 【地图随机化】种子随机数 + 随机地图生成（与服务器同一套算法，联机所有人同图）=====
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const MAP_COLORS=[0x707a88,0x9c7a4d,0x5d5348,0x4a6fa5,0x7a5a8a,0x5a8a6a,0x8a6a5a];
+const NET_SPAWN_PTS=[[-8,30],[8,30],[0,35],[-12,25],[12,25]];
+function mapGenSpec(seed, size){
+  const R=mulberry32(seed);
+  const half=size/2;
+  const boxes=[];
+  // 中心出生区：4 个矮箱（避开玩家出生点，保证出生不卡）
+  for(let i=0;i<4;i++){
+    let x=0,z=0,ok=false;
+    for(let t=0;t<20&&!ok;t++){
+      x=(R()*2-1)*40; z=(R()*2-1)*40;
+      ok=Math.hypot(x,z)>10;
+      for(const s of NET_SPAWN_PTS) if(Math.hypot(x-s[0],z-s[1])<6) ok=false;
+    }
+    boxes.push({type:'box',x,z,w:1.6+R()*2.4,h:0.9+R()*0.5,d:1.6+R()*2.4,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
+  }
+  // 环形掩体：大图20个、小图14个，位置/大小/颜色全部随机，形状为方块或圆柱（形状多样化）
+  for(let i=0;i<(size>=300?20:14);i++){
+    let a=R()*Math.PI*2, r=half*0.30+R()*half*0.55;
+    let x=Math.cos(a)*r, z=Math.sin(a)*r;
+    for(let t=0;t<15;t++){
+      let bad=false;
+      for(const b of boxes){ if(Math.hypot(b.x-x,b.z-z)<5) bad=true; }
+      if(!bad)break;
+      a=R()*Math.PI*2; r=half*0.30+R()*half*0.55; x=Math.cos(a)*r; z=Math.sin(a)*r;
+    }
+    if(R()<0.72) boxes.push({type:'box',x,z,w:1.5+R()*3,h:1+R()*2.2,d:1.5+R()*3,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
+    else boxes.push({type:'cyl',x,z,r:0.9+R()*1.6,h:1.2+R()*2.2,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
+  }
+  // 可进入的楼房：大图3栋、小图2栋，有门洞、内部楼梯可登顶，实现高打低
+  const buildings=[]; const bpos=[];
+  for(let i=0;i<(size>=300?3:2);i++){
+    let cx=0,cz=0;
+    for(let t=0;t<30;t++){
+      const a=R()*Math.PI*2, r=half*0.5+R()*half*0.3;
+      cx=Math.cos(a)*r; cz=Math.sin(a)*r;
+      let ok=Math.hypot(cx,cz)>half*0.45;
+      for(const p of bpos) if(Math.hypot(cx-p[0],cz-p[1])<60) ok=false;
+      for(const b of boxes) if(Math.hypot(b.x-cx,b.z-cz)<14) ok=false;
+      if(ok)break;
+    }
+    bpos.push([cx,cz]);
+    buildings.push({cx,cz,w:18,d:14,h:9,color:0x4a5568});
+  }
+  return {boxes,buildings};
+}
+// 建筑内全部实体块（与服务器同一套算法，联机双方看到的楼完全一致）
+function buildingSpec(bd){
+  const {cx,cz,w,d,h}=bd; const t=1, W2=w/2, D2=d/2, doorW=3.4, doorH=4.5;
+  const out=[]; const box=(x,z,w2,d2,y2,h2)=>out.push({x,z,w:w2,d:d2,y:y2,h:h2});
+  box(cx-(W2+doorW/2)/2, cz-D2, W2-doorW/2, t, 0, h);  // 前墙左段（门左）
+  box(cx+(W2+doorW/2)/2, cz-D2, W2-doorW/2, t, 0, h);  // 前墙右段（门右）
+  box(cx, cz-D2, doorW, t, doorH, h-doorH);            // 门洞上方横梁
+  box(cx, cz+D2, w, t, 0, h);                          // 后墙
+  box(cx-W2, cz, t, d, 0, h);                          // 左墙
+  box(cx+W2, cz, t, d, 0, h);                          // 右墙
+  const platX0=cx+0.65, platX1=cx+7.15;                 // 【碰撞修复】走廊平台 x 带：避开楼梯段1/段2 爬升通道（否则爬楼梯时头顶顶到平台板被推回卡死）
+  box((platX0+platX1)/2, cz, platX1-platX0, d-2, 3, 0.5);   // 一层走廊平台（顶面3.5，与楼梯段1 顶齐平，可无缝走上）
+  box((platX0+platX1)/2, cz-5.5, platX1-platX0, 1, 6, 0.5);    // 二层平台前段（z cz-6~cz-5，接段2起点；段2楼梯z带cz-5~cz+2.15上方留空，爬楼不顶头）
+  box((platX0+platX1)/2, cz+4.05, platX1-platX0, 3.9, 6, 0.5);   // 二层平台后段（z cz+2.1~cz+6，接段2顶）
+  box(cx, cz-6.4, w, 1.2, 9, 1);                        // 楼顶板后段（留出楼梯段3 通道，爬楼梯不再顶头）
+  box(cx, cz-0.925, w, 6.55, 9, 1);                     // 楼顶板前段左（z cz-4.2~cz+2.35，给段3楼梯让出cz+2.35~cz+3.65通道，爬楼不顶头）
+  box(cx, cz+5.325, w, 3.35, 9, 1);                    // 楼顶板前段右（z cz+3.65~cz+7）
+  const stairW=1.6, stepH=0.5, stepD=1.3, N=7;   // 【碰撞修复】7 级：每段楼梯顶与对应平台/楼顶顶面齐平，可无缝走上去
+  let x0=cx-W2+1.2, z0=cz-D2+2;                        // 楼梯段1：门口右侧沿+x，7级到3.5m
+  for(let i=1;i<=N;i++) box(x0+(i-1)*stepD+stepD/2, z0, stairW, stepD, (i-1)*stepH, stepH); // 【碰撞修复】独立0.5m台阶（不再实心梯形，否则最后一级成高柱封死走廊）
+  x0=cx+W2-2.2; z0=cz-D2+2;                            // 楼梯段2：沿+z，6级到6.5m（与二层平台顶齐平，从走廊无缝走上，不再7级顶7.0导致下台阶被拉回）
+  for(let i=1;i<=6;i++) box(x0, z0+(i-1)*stepD+stepD/2, stairW, stepD, 3.5+(i-1)*stepH, stepH);
+  z0=cz+3.0; x0=cx+W2-2.2;                             // 楼梯段3：沿-x，7级到10m（楼顶）；起点z=段2顶附近，玩家爬完段2直接转-x，无需横穿走廊
+  for(let i=1;i<=N;i++) box(x0-(i-1)*stepD-stepD/2, z0, stairW, stepD, 6.5+(i-1)*stepH, stepH);
+  return out;
+}
+function buildBuilding(bd){
+  for(const s of buildingSpec(bd)) addObstacle(s.x, s.y, s.z, s.w, s.h, s.d, bd.color);
+  // 记录楼内空腔（敌人出生、物品生成都要避开，防止被困在楼里）
+  innerBoxes.push({min:{x:bd.cx-bd.w/2+1,z:bd.cz-bd.d/2+1},max:{x:bd.cx+bd.w/2-1,z:bd.cz+bd.d/2-1}});
+}
+function buildMap(seed){
+  console.log('buildMap seed='+seed);
+  for(const o of obstacles)scene.remove(o.mesh);
+  obstacles.length=0; innerBoxes.length=0;
+  const spec=mapGenSpec(seed, mapSize);
+  const half = mapSize/2;
+  const wall=0x3d4756;
+  addObstacle(0,0,-half, mapSize, 6, 20, wall);
+  addObstacle(0,0, half, mapSize, 6, 20, wall);
+  addObstacle(-half,0,0, 20, 6, mapSize, wall);
+  addObstacle( half,0,0, 20, 6, mapSize, wall);
+  for(const b of spec.boxes){
+    if(b.type==='cyl') addObstacle(b.x,0,b.z, b.r*2, b.h, b.r*2, b.color, 'cyl');
+    else addObstacle(b.x,0,b.z, b.w, b.h, b.d, b.color);
+  }
+  for(const bd of spec.buildings) buildBuilding(bd);
+  rebuildShootables();
+}
+
+function buildGun(){
+  if(gun) camera.remove(gun);
+  gun=new THREE.Group();
+  let flashZ=-0.85, flashY=0.02;
+  if(currentWeaponId==='awp'){
+    // ===== AWP 狙击枪：长枪管 + 大瞄准镜 + 两脚架 + 深色枪身（与AK明显区分）=====
+    const body=new THREE.MeshStandardMaterial({color:0x243024,roughness:.55,metalness:.35});
+    const black=new THREE.MeshStandardMaterial({color:0x141414,roughness:.45,metalness:.7});
+    const lensMat=new THREE.MeshStandardMaterial({color:0x1b3a5c,roughness:.1,metalness:.9,emissive:0x0a2238,emissiveIntensity:.6});
+    // 长枪管
+    const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.03,0.62,12),black);
+    barrel.rotation.x=Math.PI/2; barrel.position.set(0,0.03,-0.62);
+    gun.add(barrel);
+    const muzzle=new THREE.Mesh(new THREE.CylinderGeometry(0.036,0.028,0.12,12),black);
+    muzzle.rotation.x=Math.PI/2; muzzle.position.set(0,0.03,-0.99);
+    gun.add(muzzle);
+    // 枪身（比AK更长）
+    const receiver=new THREE.Mesh(new THREE.BoxGeometry(0.085,0.11,0.5),body);
+    receiver.position.set(0,0.03,-0.18);
+    gun.add(receiver);
+    // 大瞄准镜
+    const scope=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.3,16),black);
+    scope.rotation.x=Math.PI/2; scope.position.set(0,0.13,-0.18);
+    gun.add(scope);
+    const scopeRing1=new THREE.Mesh(new THREE.CylinderGeometry(0.058,0.058,0.045,16),black);
+    scopeRing1.rotation.x=Math.PI/2; scopeRing1.position.set(0,0.13,-0.31);
+    gun.add(scopeRing1);
+    const scopeRing2=scopeRing1.clone(); scopeRing2.position.z=-0.05;
+    gun.add(scopeRing2);
+    const lens=new THREE.Mesh(new THREE.CylinderGeometry(0.042,0.042,0.012,16),lensMat);
+    lens.rotation.x=Math.PI/2; lens.position.set(0,0.13,-0.338);
+    gun.add(lens);
+    // 大枪托
+    const stock=new THREE.Mesh(new THREE.BoxGeometry(0.075,0.13,0.28),body);
+    stock.position.set(0,0.0,0.22);
+    gun.add(stock);
+    const cheek=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.04,0.2),black);
+    cheek.position.set(0,0.08,0.2);
+    gun.add(cheek);
+    // 握把与扳机
+    const grip=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.11,0.06),black);
+    grip.position.set(0,-0.08,0.05); grip.rotation.x=0.25;
+    gun.add(grip);
+    const trig=new THREE.Mesh(new THREE.BoxGeometry(0.03,0.05,0.05),black);
+    trig.position.set(0,-0.05,-0.03);
+    gun.add(trig);
+    // 两脚架（上端贴近枪管、下端向外张开撑地，呈正V形）
+    const legGeo=new THREE.CylinderGeometry(0.008,0.008,0.2,6);
+    const legL=new THREE.Mesh(legGeo,black);
+    legL.position.set(-0.045,-0.07,-0.55); legL.rotation.z=-0.35;
+    gun.add(legL);
+    const legR=legL.clone(); legR.position.x=0.045; legR.rotation.z=0.35;
+    gun.add(legR);
+    flashZ=-1.05; flashY=0.03;
+  } else {
+    // ===== AK-47（木质护木+短枪管+机械瞄具）=====
+    const metal=new THREE.MeshStandardMaterial({color:0x2b2f36,roughness:.4,metalness:.7});
+    const wood=new THREE.MeshStandardMaterial({color:0x6b3a1f,roughness:.8});
+    const darkMetal=new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.6,metalness:.5});
+    const barrel=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.035,0.40,10),metal);
+    barrel.rotation.x=Math.PI/2; barrel.position.set(0,0.02,-0.50);
+    gun.add(barrel);
+    const barrelExt=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.03,0.15,10),darkMetal);
+    barrelExt.rotation.x=Math.PI/2; barrelExt.position.set(0,0.02,-0.775);
+    gun.add(barrelExt);
+    const receiver=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,0.30),metal);
+    receiver.position.set(0,0.04,-0.15);
+    gun.add(receiver);
+    const topRail=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.015,0.26),darkMetal);
+    topRail.position.set(0,0.095,-0.17);
+    gun.add(topRail);
+    const handguard=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.05,0.25),wood);
+    handguard.position.set(0,0.02,-0.425);
+    gun.add(handguard);
+    const stock=new THREE.Mesh(new THREE.BoxGeometry(0.06,0.09,0.25),wood);
+    stock.position.set(0,-0.01,0.125);
+    gun.add(stock);
+    const stockEnd=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.10,0.03),darkMetal);
+    stockEnd.position.set(0,-0.01,0.265);
+    gun.add(stockEnd);
+    const grip=new THREE.Mesh(new THREE.BoxGeometry(0.04,0.12,0.06),wood);
+    grip.position.set(0,-0.08,0.02);
+    grip.rotation.x=0.3;
+    gun.add(grip);
+    const mag=new THREE.Mesh(new THREE.BoxGeometry(0.045,0.08,0.04),darkMetal);
+    mag.position.set(0,-0.06,-0.08);
+    gun.add(mag);
+    const rearSight=new THREE.Mesh(new THREE.BoxGeometry(0.02,0.025,0.015),darkMetal);
+    rearSight.position.set(0,0.09,-0.04);
+    gun.add(rearSight);
+  }
+  flashMesh=new THREE.Mesh(new THREE.SphereGeometry(0.08,8,8),new THREE.MeshBasicMaterial({color:0xffdd66,transparent:true,opacity:.95}));
+  flashMesh.position.set(0,flashY,flashZ);
+  flashMesh.visible=false;
+  gun.add(flashMesh);
+  gun.position.set(0.25,-0.22,-0.5);
+  camera.add(gun);
+}
+
+// ================= 输入（键盘+鼠标） =================
+// ================= 设置：改键 / 灵敏度 / 手机按键布局 =================
+const KEY_LABEL={Space:'空格',ControlLeft:'Ctrl',ShiftLeft:'Shift 疾跑',AltLeft:'Alt',Tab:'Tab',CapsLock:'大写键'};
+function keyLabel(code){if(KEY_LABEL[code])return KEY_LABEL[code];return (code||'').replace(/^(Key|Digit|Arrow)/,'');}
+let layoutEditing=false, leSelected=null, leDrag=null, listeningKey=false;
+
+function openSettings(){
+  $('jumpKeyBtn').textContent=keyLabel(settings.jumpKey);
+  $('mouseSensRange').value=settings.mouseMul; $('mouseSensVal').textContent=settings.mouseMul.toFixed(2)+'x';
+  $('touchSensRange').value=settings.touchMul; $('touchSensVal').textContent=settings.touchMul.toFixed(2)+'x';
+  $('touchSettingGroup').style.display=IS_TOUCH?'block':'none';
+  document.querySelectorAll('.overlay').forEach(o=>o.classList.add('hidden'));
+  $('settings').classList.remove('hidden');
+}
+function closeSettings(){
+  saveSettings();
+  $('settings').classList.add('hidden');
+  if(gameState==='playing'){
+    if(IS_TOUCH){paused=false;firing=false;$('pause').classList.add('hidden');}
+    else $('pause').classList.remove('hidden'); // 电脑回到暂停界面，点“继续”重新锁定鼠标
+  } else $('menu').classList.remove('hidden');
+}
+
+// 把保存的自定义布局应用到控件（位置用比例、大小用缩放，兼容不同分辨率与横竖屏）
+function applyTouchLayout(){
+  const vw=innerWidth,vh=innerHeight;
+  for(const id of LAYOUT_IDS){
+    const el=$(id); if(!el)continue; const L=settings.touchLayout[id];
+    if(L){
+      el.style.left=(L.nx*vw)+'px'; el.style.top=(L.ny*vh)+'px';
+      el.style.right='auto'; el.style.bottom='auto';
+      el.style.transformOrigin='top left'; el.style.transform='scale('+L.s+')';
+    }else{
+      el.style.left='';el.style.top='';el.style.right='';el.style.bottom='';el.style.transform='';el.style.transformOrigin='';
+    }
+  }
+}
+function leCurScale(id){const L=settings.touchLayout[id];return L?L.s:1;}
+
+function openLayoutEditor(){
+  $('settings').classList.add('hidden');
+  const tc=$('touch-controls'); tc.classList.add('active','editing');
+  document.body.classList.add('touch-mode');
+  // 把当前 CSS 默认(right/bottom)定位固化成 left/top，统一用左上角坐标拖动
+  for(const id of LAYOUT_IDS){
+    const el=$(id),r=el.getBoundingClientRect();
+    el.style.left=r.left+'px'; el.style.top=r.top+'px'; el.style.right='auto'; el.style.bottom='auto';
+    el.style.transformOrigin='top left'; el.style.transform='scale('+leCurScale(id)+')';
+    el.classList.remove('le-selected');
+  }
+  leSelected=null; $('leSizeRange').value=1;
+  $('layoutEditor').classList.add('active'); layoutEditing=true;
+}
+function closeLayoutEditor(){
+  layoutEditing=false; leSelected=null; leDrag=null;
+  $('layoutEditor').classList.remove('active');
+  $('touch-controls').classList.remove('editing');
+  LAYOUT_IDS.forEach(id=>{const el=$(id);if(el)el.classList.remove('le-selected');});
+  $('settings').classList.remove('hidden');
+}
+function saveLayout(){
+  const vw=innerWidth,vh=innerHeight;
+  for(const id of LAYOUT_IDS){
+    const el=$(id); const m=parseFloat(el.style.left),n=parseFloat(el.style.top);
+    if(isNaN(m)||isNaN(n))continue;
+    const s=leCurScale(id);
+    settings.touchLayout[id]={nx:m/vw,ny:n/vh,s};
+  }
+  saveSettings(); applyTouchLayout();
+  showMsg('✔ 按键布局已保存',1);
+}
+
+function setupSettings(){
+  // 改跳跃键
+  const kb=$('jumpKeyBtn');
+  kb.addEventListener('click',()=>{listeningKey=true;kb.classList.add('listening');kb.textContent='请按新键…';});
+  addEventListener('keydown',(e)=>{
+    if(!listeningKey)return; e.preventDefault();
+    if(e.code==='Escape'){listeningKey=false;kb.classList.remove('listening');kb.textContent=keyLabel(settings.jumpKey);return;}
+    settings.jumpKey=e.code; listeningKey=false; kb.classList.remove('listening');
+    kb.textContent=keyLabel(settings.jumpKey); saveSettings();
+  });
+  // 灵敏度滑块
+  $('mouseSensRange').addEventListener('input',e=>{settings.mouseMul=+e.target.value;$('mouseSensVal').textContent=settings.mouseMul.toFixed(2)+'x';saveSettings();});
+  $('touchSensRange').addEventListener('input',e=>{settings.touchMul=+e.target.value;$('touchSensVal').textContent=settings.touchMul.toFixed(2)+'x';saveSettings();});
+  // 布局编辑器按钮
+  $('leExit').addEventListener('click',closeLayoutEditor);
+  $('leSave').addEventListener('click',()=>{saveLayout();closeLayoutEditor();});
+  $('leResetAll').addEventListener('click',()=>{
+    settings.touchLayout=JSON.parse(JSON.stringify(DEFAULT_TOUCH_LAYOUT));
+    saveSettings(); applyTouchLayout();
+    if(leSelected)$('leSizeRange').value=leCurScale(leSelected);
+  });
+  $('leResetOne').addEventListener('click',()=>{
+    if(!leSelected)return;
+    if(DEFAULT_TOUCH_LAYOUT[leSelected])settings.touchLayout[leSelected]=JSON.parse(JSON.stringify(DEFAULT_TOUCH_LAYOUT[leSelected]));
+    else delete settings.touchLayout[leSelected];
+    saveSettings(); applyTouchLayout();
+    $('leSizeRange').value=leCurScale(leSelected);
+  });
+  $('leSizeRange').addEventListener('input',e=>{
+    if(!leSelected)return;
+    const s=+e.target.value;
+    if(!settings.touchLayout[leSelected])settings.touchLayout[leSelected]={nx:0,ny:0,s:1};
+    settings.touchLayout[leSelected].s=s;
+    $(leSelected).style.transform='scale('+s+')';
+  });
+  // 拖动（pointer events，同时兼容鼠标与触摸）
+  for(const id of LAYOUT_IDS){
+    const el=$(id);
+    el.addEventListener('pointerdown',(e)=>{
+      if(!layoutEditing)return;
+      e.preventDefault();e.stopPropagation();
+      leSelected=id; leDrag=null;
+      document.querySelectorAll('.le-selected').forEach(x=>x.classList.remove('le-selected'));
+      el.classList.add('le-selected');
+      const r=el.getBoundingClientRect(),s=leCurScale(id);
+      leDrag={id,offX:(e.clientX-r.left)/s,offY:(e.clientY-r.top)/s,s};
+      $('leSizeRange').value=s;
+    });
+  }
+  addEventListener('pointermove',(e)=>{
+    if(!layoutEditing||!leDrag)return;
+    const el=$(leDrag.id);
+    el.style.left=(e.clientX-leDrag.offX*leDrag.s)+'px';
+    el.style.top=(e.clientY-leDrag.offY*leDrag.s)+'px';
+    el.style.right='auto';el.style.bottom='auto';el.style.transformOrigin='top left';
+  });
+  addEventListener('pointerup',()=>{leDrag=null;});
+  addEventListener('resize',applyTouchLayout);
+  applyTouchLayout();
+}
+
+function safeLock(){try{const p=document.body.requestPointerLock();if(p&&p.catch)p.catch(()=>{});}catch(e){}}
+// 【防视角闪跳】鼠标锁定瞬间浏览器会重置鼠标位置并上报超大位移，
+// 用"静默期"忽略锁定后一小段时间的移动事件，避免视角突然被甩一大段
+let mouseMoveSilentUntil = 0;
+function bindEvents(){
+  addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+  addEventListener('keydown',e=>{
+    keys[e.code]=true;
+    if(e.code==='Space'||e.code===settings.jumpKey)e.preventDefault();
+    if(e.code==='KeyR')startReload();
+    if(e.code==='Digit1'){switchWeapon('ak47'); e.preventDefault();}
+    if(e.code==='Digit2'){switchWeapon('awp'); e.preventDefault();}
+  });
+  addEventListener('keyup',e=>keys[e.code]=false);
+  addEventListener('blur',()=>{keys={};firing=false;});
+  document.addEventListener('mousemove',e=>{
+    if(gameState!=='playing'||paused||!document.pointerLockElement)return;
+    // 【防视角闪跳】锁定/重新锁定后的静默期内不响应移动（那段是鼠标归位的假位移）
+    if(performance.now()<mouseMoveSilentUntil)return;
+    const mx=e.movementX, my=e.movementY;
+    // 【防视角闪跳】单帧异常大的位移直接丢弃（正常甩枪一帧远小于这个值）
+    if(Math.abs(mx)>400||Math.abs(my)>400)return;
+    const s=BASE_SENS*settings.mouseMul;
+    yaw-=mx*s; pitch-=my*s;
+    pitch=Math.max(-1.45,Math.min(1.45,pitch));
+  });
+  document.addEventListener('mousedown', e=>{
+    if(gameState==='playing'&&!paused&&document.pointerLockElement){
+      if(e.button===0) firing=true;
+      if(e.button===2){
+        ads=true;
+        if(currentWeaponType==='rifle' || currentWeaponType==='sniper'){ $('scope').style.display='block'; $('crosshair').style.display='none'; }
+        else { $('scope').style.display='none'; $('crosshair').style.display='block'; }
+        targetFov = currentWeapon.adsFov || 40;
+      }
+    }
+  });
+  document.addEventListener('mouseup', e=>{
+    if(e.button===0) firing=false;
+    if(e.button===2){ ads=false; targetFov=75; $('scope').style.display='none'; $('crosshair').style.display='block'; }
+  });
+  document.addEventListener('contextmenu', e=>e.preventDefault());
+  document.addEventListener('pointerlockchange',()=>{
+    if(IS_TOUCH) return; // 手机/平板没有指针锁定，不因失去锁定而暂停
+    if(document.pointerLockElement){
+      // 【防视角闪跳】锁定成功瞬间开始静默期，忽略鼠标归位的假位移
+      mouseMoveSilentUntil=performance.now()+250;
+      if(gameState==='playing'){paused=false;pauseEl.classList.add('hidden');}
+    }
+    else if(gameState==='playing'){paused=true;firing=false;pauseEl.classList.remove('hidden');}
+  });
+  document.addEventListener('click',()=>{if(IS_TOUCH)return; if(gameState==='playing'&&!document.pointerLockElement)safeLock();});
+  $('resumeBtn').onclick=()=>{ if(IS_TOUCH){paused=false;firing=false;pauseEl.classList.add('hidden');} else safeLock(); };
+  $('quitBtn').onclick=()=>toMenu();
+  $('retryBtn').onclick=()=>startGame(mode);
+  $('menuBtn').onclick=()=>toMenu();
+  // 【新增·房间系统】创建房间(create=true) / 加入房间(create=false)
+  $('netCreateBtn').onclick=()=>doConnect(true,false);
+  $('netCoopCreateBtn').onclick=()=>doConnect(true,true);
+  $('netJoinBtn').onclick=()=>doConnect(false,false);
+  $('netBackBtn').onclick=hideNetPanel;
+
+  // ===== 触摸控件绑定 =====
+  // 摇杆
+  const joystickArea = document.getElementById('joystick-area');
+  const joystickThumb = document.getElementById('joystick-thumb');
+  let joystickActive = false;
+  let joystickTouchId = null;
+  const joystickRadius = 50; // 摇杆最大偏移像素
+
+  function handleJoystickStart(e){
+    e.preventDefault();
+    joystickActive = true;
+    joystickTouchId = e.changedTouches ? e.changedTouches[0].identifier : null;
+    handleJoystickMove(e);
+  }
+  function handleJoystickMove(e){
+    if(!joystickActive) return;
+    e.preventDefault();
+    let touch = e;
+    if(e.touches){
+      // 多点触控：只跟踪属于摇杆的那根手指，避免和右侧视角/射击手指串扰
+      touch=null;
+      for(const t of e.touches){ if(t.identifier===joystickTouchId){touch=t;break;} }
+      if(!touch) return;
+    }
+    const rect = joystickArea.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    let dx = touch.clientX - cx;
+    let dy = touch.clientY - cy;
+    const dist = Math.hypot(dx, dy);
+    const maxDist = Math.min(rect.width/2, rect.height/2);
+    const clampedDist = Math.min(dist, maxDist);
+    const angle = Math.atan2(dy, dx);
+    const clampedDx = Math.cos(angle) * clampedDist;
+    const clampedDy = Math.sin(angle) * clampedDist;
+    // 更新摇杆UI
+    joystickThumb.style.transform = `translate(calc(-50% + ${clampedDx}px), calc(-50% + ${clampedDy}px))`;
+    // 归一化方向向量（-1..1）
+    const norm = maxDist > 0 ? clampedDist / maxDist : 0;
+    joystickX = norm * Math.cos(angle);
+    joystickY = norm * Math.sin(angle);
+  }
+  function handleJoystickEnd(e){
+    if(e.changedTouches){
+      // 只有摇杆自己的手指抬起时才复位，其他手指抬起不影响
+      let mine=false;
+      for(const t of e.changedTouches){ if(t.identifier===joystickTouchId) mine=true; }
+      if(!mine) return;
+    }
+    joystickActive = false;
+    joystickTouchId = null;
+    joystickX = 0; joystickY = 0;
+    joystickThumb.style.transform = 'translate(-50%, -50%)';
+  }
+  joystickArea.addEventListener('touchstart', handleJoystickStart, {passive:false});
+  document.addEventListener('touchmove', handleJoystickMove, {passive:false});
+  document.addEventListener('touchend', handleJoystickEnd, {passive:false});
+  // 兼容鼠标（调试用）
+  joystickArea.addEventListener('mousedown', (e)=>{handleJoystickStart(e);});
+  document.addEventListener('mousemove', (e)=>{if(joystickActive) handleJoystickMove(e);});
+  document.addEventListener('mouseup', handleJoystickEnd);
+
+  // 视角触摸滑动
+  let viewTouchId = null;
+  let lastViewX = 0, lastViewY = 0;
+  const viewArea = document.getElementById('view-area');
+  viewArea.addEventListener('touchstart', (e)=>{
+    if(gameState!=='playing'||paused) return;
+    if(viewTouchId!==null) return; // 已有手指负责转视角，不被其他手指抢占
+    const touch = e.changedTouches[0];
+    viewTouchId = touch.identifier;
+    lastViewX = touch.clientX;
+    lastViewY = touch.clientY;
+  }, {passive:true});
+  document.addEventListener('touchmove', (e)=>{
+    if(gameState!=='playing'||paused) return;
+    let touch = null;
+    for(let t of e.changedTouches){
+      if(t.identifier === viewTouchId){
+        touch = t; break;
+      }
+    }
+    if(!touch) return;
+    const dx = touch.clientX - lastViewX;
+    const dy = touch.clientY - lastViewY;
+    if(Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5){
+      const ts=TOUCH_BASE_SENS*settings.touchMul;
+      yaw -= dx * ts;
+      pitch -= dy * ts;
+      pitch = Math.max(-1.45, Math.min(1.45, pitch));
+    }
+    lastViewX = touch.clientX;
+    lastViewY = touch.clientY;
+  }, {passive:true});
+  document.addEventListener('touchend', (e)=>{
+    for(let t of e.changedTouches){
+      if(t.identifier === viewTouchId){
+        viewTouchId = null;
+        break;
+      }
+    }
+  }, {passive:true});
+
+  // 射击按钮（按住开火的同时，这根手指拖动也能转视角，方便边开枪边转身/压枪）
+  let fireLookId=null, fireLookX=0, fireLookY=0;
+  const fireBtnEl=document.getElementById('fire-btn');
+  fireBtnEl.addEventListener('touchstart', (e)=>{
+    e.preventDefault(); firing=true;
+    const t=e.changedTouches[0]; fireLookId=t.identifier; fireLookX=t.clientX; fireLookY=t.clientY;
+  },{passive:false});
+  document.addEventListener('touchmove',(e)=>{
+    if(fireLookId===null||gameState!=='playing'||paused)return;
+    let t=null; for(const x of e.changedTouches){if(x.identifier===fireLookId){t=x;break;}}
+    if(!t)return;
+    const dx=t.clientX-fireLookX, dy=t.clientY-fireLookY;
+    if(Math.abs(dx)>0.5||Math.abs(dy)>0.5){
+      const fs=TOUCH_BASE_SENS*settings.touchMul;
+      yaw-=dx*fs; pitch-=dy*fs; pitch=Math.max(-1.45,Math.min(1.45,pitch));
+    }
+    fireLookX=t.clientX; fireLookY=t.clientY;
+  },{passive:false});
+  const endFireLook=(e)=>{
+    firing=false;
+    if(e&&e.changedTouches&&fireLookId!==null){for(const x of e.changedTouches){if(x.identifier===fireLookId){fireLookId=null;break;}}}
+    else fireLookId=null;
+  };
+  fireBtnEl.addEventListener('touchend',endFireLook);
+  fireBtnEl.addEventListener('touchcancel',endFireLook);
+  fireBtnEl.addEventListener('mousedown', (e)=>{firing=true;});
+  fireBtnEl.addEventListener('mouseup', (e)=>{firing=false;});
+
+  // 开镜按钮
+  document.getElementById('aim-btn').addEventListener('touchstart', (e)=>{
+    e.preventDefault();
+    ads = !ads;
+    if(ads){
+      if(currentWeaponType==='rifle' || currentWeaponType==='sniper'){ $('scope').style.display='block'; $('crosshair').style.display='none'; }
+      else { $('scope').style.display='none'; $('crosshair').style.display='none'; }
+      targetFov = currentWeapon.adsFov || 40;
+    } else {
+      targetFov = 75;
+      $('scope').style.display='none';
+      $('crosshair').style.display='block';
+    }
+  });
+  document.getElementById('aim-btn').addEventListener('click', ()=>{
+    // 鼠标点击切换
+    ads = !ads;
+    if(ads){
+      if(currentWeaponType==='rifle' || currentWeaponType==='sniper'){ $('scope').style.display='block'; $('crosshair').style.display='none'; }
+      else { $('scope').style.display='none'; $('crosshair').style.display='none'; }
+      targetFov = currentWeapon.adsFov || 40;
+    } else {
+      targetFov = 75;
+      $('scope').style.display='none';
+      $('crosshair').style.display='block';
+    }
+  });
+
+  // 换弹按钮
+  document.getElementById('reload-btn').addEventListener('touchstart', (e)=>{e.preventDefault(); startReload();});
+  document.getElementById('reload-btn').addEventListener('click', startReload);
+
+  // 切换武器按钮
+  document.getElementById('weapon-btn').addEventListener('touchstart', (e)=>{e.preventDefault(); toggleWeapon();});
+  document.getElementById('weapon-btn').addEventListener('click', toggleWeapon);
+
+  // 跳跃按钮（复用键盘 Space 的跳跃逻辑）
+  const jumpBtn=document.getElementById('jump-btn');
+  jumpBtn.addEventListener('touchstart',(e)=>{e.preventDefault();touchJump=true;},{passive:false});
+  jumpBtn.addEventListener('touchend',(e)=>{e.preventDefault();touchJump=false;},{passive:false});
+  jumpBtn.addEventListener('touchcancel',()=>{touchJump=false;});
+  jumpBtn.addEventListener('mousedown',()=>{touchJump=true;});
+  jumpBtn.addEventListener('mouseup',()=>{touchJump=false;});
+
+  // 暂停按钮（触屏设备没有 Esc 键）
+  const pauseBtn=document.getElementById('pause-btn');
+  const doTouchPause=(e)=>{e.preventDefault();if(gameState==='playing'){paused=true;firing=false;pauseEl.classList.remove('hidden');}};
+  pauseBtn.addEventListener('touchstart',doTouchPause,{passive:false});
+  pauseBtn.addEventListener('click',()=>{if(gameState==='playing'){paused=true;firing=false;pauseEl.classList.remove('hidden');}});
+
+  // 布局编辑模式下，在捕获阶段拦截所有虚拟按键动作，避免拖动时误触发射击/跳跃等
+  const tc=document.getElementById('touch-controls');
+  const blockWhileEditing=(e)=>{if(layoutEditing){e.stopPropagation();e.preventDefault();}};
+  tc.addEventListener('touchstart',blockWhileEditing,true);
+  tc.addEventListener('mousedown',blockWhileEditing,true);
+  tc.addEventListener('click',blockWhileEditing,true);
+
+  setupSettings();
+}
+
+function toggleWeapon(){
+  if(currentWeaponId === 'ak47') switchWeapon('awp');
+  else switchWeapon('ak47');
+}
+
+// ================= 局域网联机 =================
+const netPanelEl=$('netpanel');
+// 联机模式对玩家的伤害（单人打AI敌人保持原武器伤害不变）
+// 【红球4下击杀】ak47: 身体25点(4枪击杀)，爆头40点；awp: 身体50点(一枪半血)，爆头75点
+const PVP_DAMAGE = { ak47:{body:25, head:40}, awp:{body:50, head:75} };
+// 随机复活点（与服务器 SPAWNS 保持一致）
+const NET_SPAWNS = [[-8,30],[8,30],[0,35],[-12,25],[12,25]];
+const netBodyMat=new THREE.MeshStandardMaterial({color:0x2f6fd6,roughness:.8});
+const netHeadMat=new THREE.MeshStandardMaterial({color:0xe8edf3,roughness:.6});
+const netEyeMat=new THREE.MeshBasicMaterial({color:0x2266ff});
+const netGunMat=new THREE.MeshStandardMaterial({color:0x1f2630,roughness:.5,metalness:.6});
+function netSend(o){ if(net&&net.readyState===1) net.send(JSON.stringify(o)); }
+function showNetPanel(){
+  menuEl.classList.add('hidden');
+  netPanelEl.classList.remove('hidden');
+  // 【远程联机】网页是 https（如 cloudflared 公网网址）时用 wss，本地 http 用 ws，否则浏览器会拦截
+  $('netaddr').value = location.protocol==='file:' ? 'ws://127.0.0.1:8080' : (location.protocol==='https:'?'wss://':'ws://')+location.host;
+  $('netStatus').textContent='';
+  // 【新增·房间系统】预填一个随机4位房号，创建者可直接用；加入朋友房间时改成对方房号即可
+  if(!$('netroom').value) $('netroom').value=String(Math.floor(1000+Math.random()*9000));
+}
+function hideNetPanel(){ netPanelEl.classList.add('hidden'); menuEl.classList.remove('hidden'); }
+function doConnect(create, coop){
+  const name=($('netname').value||'').trim()||('玩家'+Math.floor(100+Math.random()*900));
+  let addr=($('netaddr').value||'').trim();
+  // 【远程联机】兜底地址同样按 http/https 自动选 ws/wss
+  if(!addr) addr=location.protocol==='file:'?'ws://127.0.0.1:8080':(location.protocol==='https:'?'wss://':'ws://')+location.host;
+  // 【新增·房间系统】校验房间号（必填）
+  const room=($('netroom').value||'').trim();
+  const st=$('netStatus');
+  if(!room){ st.textContent='⚠ 请先输入房间号（和朋友约定同一个，比如 8888）'; return; }
+  st.textContent=(create?'正在创建房间「'+room+'」…':'正在加入房间「'+room+'」…');
+  // 先进入联机游戏画面（保留用户点击手势，可正常锁定鼠标）
+  enterNetGame();
+  try{ net=new WebSocket(addr); }
+  catch(e){ st.textContent='地址格式错误：'+e.message; toMenu(); return; }
+  let done=false;
+  const failTimer=setTimeout(()=>{
+    if(done)return; done=true;
+    st.textContent='连接超时：请确认服务器已启动、地址正确';
+    if(net)try{net.close();}catch(e){}
+  },8000);
+  // 【新增·房间系统】join 时带上房间号 room 和“是否创建”标记 create
+  net.onopen=()=>{ done=true; clearTimeout(failTimer); st.textContent='已连接，正在进入房间…'; netSend({type:'join',name,room,create:!!create,coop:!!coop}); }; // 【合作模式】创建时带上 coop 标记
+  net.onmessage=e=>{ let m; try{m=JSON.parse(e.data);}catch(err){return;} if(m)handleNetMsg(m); };
+  net.onclose=()=>{ done=true; clearTimeout(failTimer); net=null; if(gameState==='playing'&&mode===4){ toMenu(); st.textContent='连接已断开'; } };
+  net.onerror=()=>{};
+}
+function handleNetMsg(m){
+  if(m.type==='welcome'){
+    netId=m.id; netSpawn=m.spawn||null;
+    netPanelEl.classList.add('hidden');
+    // 【地图随机化】联机使用服务器下发的同一种子建图；合作/对战的地图大小也由服务器决定
+    let needRebuild=false;
+    if(m.mapSeed!==undefined && m.mapSeed!==mapSeed){ mapSeed=m.mapSeed; needRebuild=true; }
+    if(m.mapSize!==undefined && m.mapSize!==mapSize){ mapSize=m.mapSize; needRebuild=true; }
+    if(needRebuild)buildMap(mapSeed);
+    if(m.coop!==undefined){
+      netCoop=!!m.coop;
+      if(netCoop)clearCoopLocal(); // 【合作模式】清掉旧怪物/红球，马上会收到服务器新一轮数据
+    }
+    if(m.monsters!==undefined){ netMonsters=!!m.monsters; if(netMonsters)clearCoopLocal(); } // 【对战刷怪】对战房也接收服务器托管的怪物
+    // 【拾取系统】同步服务器上已有的物品
+    if(Array.isArray(m.items)){ for(const it of items)scene.remove(it.mesh); items.length=0; for(const it of m.items)addItem(it.itype,it.x,it.z,it.id); }
+    if(netSpawn) player.pos.set(netSpawn[0],0,netSpawn[1]);
+    for(const p of m.players) addNetPlayer(p);
+    // 【新增·房间系统】提示当前所在房间号与人数
+    showMsg('🌐 已进入房间「'+(m.room||'默认')+'」· 共 '+(m.players.length+1)+' 人',2);
+  }else if(m.type==='roomerror'){
+    // 【新增·房间系统】房间不存在/已存在等错误：断开、退回联机面板并显示文字原因
+    if(net){try{net.close();}catch(e){} net=null;}
+    toMenu();
+    menuEl.classList.add('hidden');
+    netPanelEl.classList.remove('hidden');
+    $('netStatus').textContent='⚠ '+m.reason;
+  }else if(m.type==='notice'){
+    // 【新增·房间系统】有人加入/离开房间的页面文字通知
+    showMsg('📢 '+m.text,2);
+  }else if(m.type==='join'){
+    if(m.id!==netId) addNetPlayer(m);
+  }else if(m.type==='leave'){
+    removeNetPlayer(m.id);
+  }else if(m.type==='state'){
+    if(m.id===netId)return;
+    let np=netPlayers[m.id];
+    if(!np) addNetPlayer({id:m.id,name:m.name||'玩家',pos:m.pos,hp:m.hp,alive:m.alive});
+    else{
+      np.hp=m.hp; np.alive=m.alive!==false;
+      np.downed=!!m.downed; // 【合作模式】倒地标记（用于躺倒显示 + 救援目标）
+      np.targetPos.set(m.pos[0], (m.pos[1]||0), m.pos[2]); // 同步真实高度y，否则别人看你贴地/卡进方块
+      np.targetYaw=m.yaw||0;
+      np.targetPitch=m.pitch||0;
+    }
+  }else if(m.type==='hit'){
+    damagePlayer(m.dmg,m.from);
+  }else if(m.type==='kill'){
+    // 服务器确认：自己击杀了对方
+    if(m.victim!==netId){kills++;score+=100;showMsg('🎯 击杀 +1',1);}
+  }else if(m.type==='respawn'){
+    if(m.id===netId){
+      netDead=false; player.hp=100;
+      player.pos.set(m.pos?m.pos[0]:0,(m.pos&&m.pos[1])||0,m.pos?m.pos[2]:30);
+      player.vel.set(0,0,0);
+    }else{
+      const np=netPlayers[m.id];
+      if(np){np.alive=true;np.hp=100;np.targetPos.set(m.pos?m.pos[0]:0,(m.pos&&m.pos[1])||0,m.pos?m.pos[2]:30);}
+    }
+  }
+  // ===== 【拾取系统】联机物品同步：全量列表 / 新增 / 被捡走 =====
+  else if(m.type==='items'){
+    for(const it of items)scene.remove(it.mesh); items.length=0;
+    for(const it of m.list)addItem(it.itype,it.x,it.z,it.id);
+  }else if(m.type==='item_add'){
+    addItem(m.itype,m.x,m.z,m.id);
+  }else if(m.type==='item_pickup'){
+    for(let i=items.length-1;i>=0;i--) if(items[i].id===m.id){ scene.remove(items[i].mesh); items.splice(i,1); }
+  }
+  // ===== 【新增·合作模式】服务器托管的怪物/红球/复活/击杀 =====
+  else if(m.type==='coop_state'){
+    const alive=new Set(), balive=new Set();
+    for(const en of m.enemies){
+      alive.add(en.id);
+      let e=coopEnemyMap[en.id];
+      if(!e)e=createCoopEnemy(en.id,en.x,en.z);
+      e.targetX=en.x; e.targetZ=en.z;
+      if(en.hp<e.hp){e.bodyMat.emissive.setHex(0xff3333);e.headMat.emissive.setHex(0xff3333);e.flash=0.12;}
+      e.hp=en.hp;
+    }
+    for(let i=coopEnemies.length-1;i>=0;i--){
+      const e=coopEnemies[i];
+      if(!alive.has(e.id)){
+        if(e.hp<=0){spawnSparks(new THREE.Vector3(e.x,1.2,e.z),0xd32f2f,12,2);spawnSparks(new THREE.Vector3(e.x,1.2,e.z),0xffd54f,6,1.5);sfx.kill();}
+        scene.remove(e.mesh); delete coopEnemyMap[e.id]; coopEnemies.splice(i,1);
+      }
+    }
+    for(const b of m.bullets){
+      balive.add(b.id);
+      let mesh=coopBallMap[b.id];
+      if(!mesh){
+        mesh=new THREE.Mesh(ballGeo,ballMat);
+        mesh.vel=new THREE.Vector3();
+        scene.add(mesh);
+        coopBallMap[b.id]=mesh;
+      }
+      mesh.position.set(b.x,b.y,b.z);
+      mesh.vel.set(b.vx,b.vy,b.vz);
+    }
+    for(const k in coopBallMap){
+      if(!balive.has(Number(k))){ scene.remove(coopBallMap[k]); delete coopBallMap[k]; }
+    }
+    rebuildShootables();
+  }else if(m.type==='revived'){
+    // 【合作模式】我被队友救起来了（服务器只发给倒地者本人）
+    coopDowned=false; player.hp=10; coopReviveT=0;
+    showMsg('🩹 你被队友救起来了！血量 10',2.5);
+    netSend({type:'state',pos:[player.pos.x,player.pos.y,player.pos.z],yaw,pitch,hp:10,alive:true,downed:false});
+  }else if(m.type==='coop_kill'){
+    // 【合作模式】服务器确认：我击杀了一只怪物
+    if(m.killer===netId){kills++;score+=100;showMsg('🎯 击杀怪物 +1',1);}
+  }
+}
+function enterNetGame(){
+  startGame(4);
+}
+function addNetPlayer(p){
+  if(netPlayers[p.id])return;
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(eBodyGeo,netBodyMat); body.position.y=0.85; body.castShadow=true;
+  const head=new THREE.Mesh(eHeadGeo,netHeadMat); head.position.y=1.65; head.castShadow=true; head.userData.head=true;
+  const eyeL=new THREE.Mesh(eEyeGeo,netEyeMat); eyeL.position.set(-0.14,1.68,0.29);
+  const eyeR=eyeL.clone(); eyeR.position.x=0.14;
+  const egun=new THREE.Mesh(eGunGeo,netGunMat); egun.position.set(0.3,1.1,0.3);
+  g.add(body,head,eyeL,eyeR,egun);
+  g.traverse(o=>{ if(o.isMesh) o.userData.netRef={id:p.id}; });
+  const pos=Array.isArray(p.pos)?p.pos:[0,0,30];
+  const sx=pos[0], sy=(pos.length>=3?(pos[1]||0):0), sz=pos.length>=3?pos[2]:(pos[1]||30);
+  g.position.set(sx,sy,sz);
+  scene.add(g);
+  netPlayers[p.id]={id:p.id,name:p.name||'玩家',group:g,hp:p.hp!==undefined?p.hp:100,alive:p.alive!==false,downed:false,targetPos:new THREE.Vector3(sx,sy,sz),targetYaw:0,targetPitch:0};
+  rebuildShootables();
+}
+function removeNetPlayer(id){
+  const np=netPlayers[id];
+  if(np){ scene.remove(np.group); delete netPlayers[id]; rebuildShootables(); }
+}
+function updateNetPlayers(dt){
+  for(const id in netPlayers){
+    const np=netPlayers[id];
+    np.group.visible=np.alive;
+    np.group.position.lerp(np.targetPos,Math.min(1,dt*12));
+    if(np.downed){
+      // 【合作模式】倒地队友：模型躺倒在地上
+      np.group.rotation.x=-Math.PI/2;
+      np.group.rotation.y=0;
+      np.group.position.y=0.25;
+    }else{
+      np.group.rotation.x=0;
+      // 模型脸默认朝+Z，玩家视角朝向是(-sin(yaw),0,-cos(yaw))，需换算成正确的模型旋转角
+      np.group.rotation.y = Math.atan2(-Math.sin(np.targetYaw), -Math.cos(np.targetYaw));
+    }
+  }
+}
+setInterval(()=>{
+  if(net&&net.readyState===1&&gameState==='playing'&&mode===4&&!netDead){
+    netSend({type:'state',pos:[player.pos.x,player.pos.y,player.pos.z],yaw,pitch,hp:Math.round(Math.max(0,player.hp)),alive:player.hp>0,downed:coopDowned}); // 【合作模式】同步倒地标记
+  }
+},NET_INTERVAL);
+
+// ================= 游戏流程 =================
+function switchWeapon(id){
+  if(id===currentWeaponId) return;
+  currentWeaponId = id;
+  currentWeapon = WEAPONS[id];
+  currentWeaponType = currentWeapon.type;
+  ammo = currentWeapon.mag;
+  reserve = reserves[id]; // 【拾取系统】切枪时使用各自已积累的备用弹药，不再重置丢失
+  reloading=false; reloadTimer=0;
+  ads=false; targetFov=75; $('scope').style.display='none'; $('crosshair').style.display='block';
+  weaponHint.textContent = (id==='ak47'?'🔫 AK-47':'🎯 AWP');
+  weaponHint.style.display='block';
+  setTimeout(()=>weaponHint.style.display='none', 1200);
+  buildGun();
+  updateHUD();
+}
+
+function startGame(m){
+  ac(); mode=m; clearWorld();
+  for(const id in netPlayers){ scene.remove(netPlayers[id].group); delete netPlayers[id]; }
+  // 【地图随机化】单机每局重新随机种子；联机等服务器下发种子
+  for(const it of items)scene.remove(it.mesh); items.length=0;
+  if(mode!==4){ mapSeed=(Math.random()*1e9)|0; }
+  rebuildShootables();
+  player.pos.set(0,0,30); player.vel.set(0,0,0); player.hp=100;
+  yaw=0; pitch=0;
+  currentWeaponId='ak47'; currentWeapon=WEAPONS.ak47; currentWeaponType='rifle';
+  ammo=currentWeapon.mag; reserve=currentWeapon.reserve; reloading=false;
+  ads=false; targetFov=75; $('scope').style.display='none'; $('crosshair').style.display='block';
+  kills=0; score=0; firing=false; fireTimer=0; lastHurt=99; damageFlash=0;
+  wave=0; betweenWaves=true; waveTimer=2.5; timeSurvived=0;
+  quota=25; spawnedCount=0; spawnTimer=8; timeLeft=90;
+  spawnInterval=8; // 【持续刷怪】开局 6 只（buildMap 后由下方预生成），8 秒后开始自动越刷越快
+  menuEl.classList.add('hidden'); overEl.classList.add('hidden'); pauseEl.classList.add('hidden');
+  hudEl.classList.remove('hidden');
+  gameState='playing'; paused=false;
+  buildMap(mapSeed);
+  // 【持续刷怪】开局先刷 6 只，之后交给主循环自动补怪
+  for(let i=0;i<6;i++)spawnEnemy();
+  if(!IS_TOUCH) safeLock();
+  showMsg(MODES[m]+' · 开始!',2);
+  weaponHint.textContent='🔫 AK-47';
+  weaponHint.style.display='block';
+  setTimeout(()=>weaponHint.style.display='none', 1200);
+}
+function toMenu(){
+  gameState='menu';
+  if(net){ try{net.close();}catch(e){} net=null; }
+  for(const id in netPlayers){ scene.remove(netPlayers[id].group); delete netPlayers[id]; }
+  if(document.exitPointerLock)document.exitPointerLock();
+  pauseEl.classList.add('hidden'); overEl.classList.add('hidden'); hudEl.classList.add('hidden');
+  menuEl.classList.remove('hidden');
+  clearWorld();
+}
+function gameOver(win){
+  if(gameState!=='playing')return;
+  gameState='over'; firing=false;
+  if(document.exitPointerLock)document.exitPointerLock();
+  $('overTitle').textContent=win?'🏆 胜利!':((netCoop&&mode===4)?'😵 合作失败':'💀 游戏结束');
+  let extra=mode===1?`存活时间:<span>${timeSurvived.toFixed(0)}s</span> 击杀:<span>${kills}</span><br>`:'';
+  $('overStats').innerHTML=`模式:<span>${MODES[mode]}</span><br>${extra}击杀:<span>${kills}</span> 得分:<span>${score}</span>`;
+  overEl.classList.remove('hidden');
+}
+function clearWorld(){
+  for(const e of enemies)scene.remove(e.mesh);
+  for(const b of enemyBullets)scene.remove(b.mesh);
+  for(const p of particles)scene.remove(p.mesh);
+  for(const t of tracers)scene.remove(t.line);
+  for(const it of items)scene.remove(it.mesh);
+  for(const e of coopEnemies)scene.remove(e.mesh); // 【合作模式】服务器托管的怪物
+  for(const k in coopBallMap)scene.remove(coopBallMap[k]);
+  enemies.length=0; enemyBullets.length=0; particles.length=0; tracers.length=0; items.length=0;
+  coopEnemies.length=0;
+  for(const k in coopEnemyMap)delete coopEnemyMap[k];
+  for(const k in coopBallMap)delete coopBallMap[k];
+  rebuildShootables();
+}
+function rebuildShootables(){
+  shootables=[groundMesh];
+  for(const o of obstacles)shootables.push(o.mesh);
+  for(const e of enemies)shootables.push(e.mesh);
+  for(const e of coopEnemies)shootables.push(e.mesh); // 【合作模式】服务器托管的怪物可被打
+  for(const id in netPlayers){
+    const g=netPlayers[id].group;
+    g.traverse(o=>{ if(o.isMesh) shootables.push(o); });
+  }
+}
+
+// ================= 玩家 =================
+function playerOverlap(o){
+  return player.pos.x+P_RADIUS>o.min.x&&player.pos.x-P_RADIUS<o.max.x&&
+         player.pos.z+P_RADIUS>o.min.z&&player.pos.z-P_RADIUS<o.max.z&&
+         player.pos.y<o.max.y&&player.pos.y+P_HEIGHT>o.min.y;
+}
+function updatePlayer(dt){
+  // 【合作模式】倒地后不能动/不能打，视角自动切到存活队友身上（观战他过来救你）
+  if(netCoop&&coopDowned){
+    let target=null;
+    for(const id in netPlayers){ const np=netPlayers[id]; if(np.alive&&!np.downed){ target=np; break; } }
+    if(target){
+      camera.position.set(target.targetPos.x, target.targetPos.y+EYE, target.targetPos.z);
+      camera.rotation.set(target.targetPitch||0, target.targetYaw||0, 0);
+    }else{
+      // 队友也倒了（或不在线）：趴在地上看地面，马上会判定合作失败
+      camera.position.set(player.pos.x, player.pos.y+0.3, player.pos.z);
+      camera.rotation.set(1.4, 0, 0);
+    }
+    return;
+  }
+  // 键盘移动（WASD）
+  let kx=0, kz=0;
+  if(keys['KeyW']) kz--;
+  if(keys['KeyS']) kz++;
+  if(keys['KeyA']) kx--;
+  if(keys['KeyD']) kx++;
+  // 摇杆移动（触摸）
+  if(Math.abs(joystickX)>0.05 || Math.abs(joystickY)>0.05){
+    // 摇杆优先级高于键盘
+    const angle = Math.atan2(-joystickY, joystickX);
+    const mag = Math.min(1, Math.hypot(joystickX, joystickY));
+    kx = Math.cos(angle) * mag;
+    kz = -Math.sin(angle) * mag;
+  }
+  // 双击W疾跑（键盘）
+  if(keys['KeyW'] && !wPressed) {
+    wPressed = true;
+    const now = Date.now();
+    if(now - wPressTime < 300) {
+      isSprinting = !isSprinting;
+      showMsg(isSprinting ? '🏃 疾跑开启' : '🚶 疾跑关闭', 1);
+    }
+    wPressTime = now;
+    if (wDoublePressTimer) clearTimeout(wDoublePressTimer);
+    wDoublePressTimer = setTimeout(() => { wPressed = false; }, 300);
+  }
+  if(keys['KeyS'] || keys['KeyA'] || keys['KeyD']) {
+    if(!keys['KeyW']) isSprinting = false;
+  }
+  const speed = isSprinting ? RUN : WALK;
+  const sin=Math.sin(yaw),cos=Math.cos(yaw);
+  let mx = cos*kx + sin*kz;
+  let mz = -sin*kx + cos*kz;
+  const ml=Math.hypot(mx,mz);
+  if(ml>1){mx/=ml;mz/=ml;}
+  player.vel.x=mx*speed; player.vel.z=mz*speed;
+  // 【碰撞修复】先解决垂直方向（重力/跳跃/落地/站顶），再解决水平方向。
+  // ① 矮台阶（高差≤0.55）直接走上，不再穿模卡位；② 跳起顶头；③ 水平方向跳跃上升中放行，
+  // 这样楼梯、平台、楼顶都能顺利上去（楼梯0.5m可直接走，楼顶跳一下即可）
+  player.vel.y-=GRAVITY*dt;
+  if((keys[settings.jumpKey]||touchJump)&&player.onGround){player.vel.y=JUMP_V;player.onGround=false;}
+  const prevY=player.pos.y;
+  player.pos.y+=player.vel.y*dt;
+  player.onGround=false;
+  const STEP_UP=0.55; // 能直接走上去（不用跳）的台阶最大高度
+  for(const o of obstacles)if(playerOverlap(o)){
+    const footGap=o.max.y-player.pos.y; // 脚到该方块顶面的距离
+    // 情况1：从上方落下（或水平走来），脚已在顶面附近 → 站顶
+    if(player.vel.y<=0&&prevY>=o.max.y-0.001){player.pos.y=o.max.y;player.vel.y=0;player.onGround=true;}
+    // 情况2：矮台阶 → 直接走上（视觉上平滑上台阶，不穿模）
+    else if(footGap>0&&footGap<=STEP_UP&&player.vel.y<=0.2){player.pos.y=o.max.y;player.vel.y=0;player.onGround=true;} // 只对“脚在台阶顶下方”的矮台阶走上，防止把已站高的玩家拉回低一级
+    // 情况3：从下方跳起，头顶碰到方块底面 → 顶头（不穿透）
+    else if(player.vel.y>0&&prevY+P_HEIGHT<=o.min.y+0.001){player.pos.y=o.min.y-P_HEIGHT;player.vel.y=0;}
+  }
+  if(player.pos.y<=0){player.pos.y=0;player.vel.y=0;player.onGround=true;}
+  // 水平方向：玩家已站在(或高于)某方块顶面时不挡；正在跳跃上升(vel.y>0)时也不挡——
+  // 保证跳上平台/楼顶的过程不被侧面推出，到顶后自然站住；
+  // 脚下是矮台阶（高差≤0.55）时直接走上（水平移动中也生效，不会被台阶边缘卡住）
+  player.pos.x+=player.vel.x*dt;
+  for(const o of obstacles)if(playerOverlap(o)){
+    if(player.pos.y>=o.max.y-0.05)continue;
+    if(player.vel.y>0.2&&player.pos.y<o.max.y&&o.max.y-player.pos.y<=1.7)continue; // 只在“一跳能上”的方块上放行，撞高墙不穿模
+    if(player.vel.y<=0.2&&o.max.y>player.pos.y&&o.max.y-player.pos.y<=STEP_UP){player.pos.y=o.max.y;player.vel.y=0;player.onGround=true;continue;} // 只向上走上（不把已站高处的玩家拉回低台阶）
+    if(player.vel.x>0.0001)player.pos.x=o.min.x-P_RADIUS;else if(player.vel.x<-0.0001)player.pos.x=o.max.x+P_RADIUS; // 【碰撞修复】推回加浮点容差：cos(-90°)≈6e-17 的微小速度符号不再误推（曾导致玩家被弹飞瞬移）
+  }
+  player.pos.z+=player.vel.z*dt;
+  for(const o of obstacles)if(playerOverlap(o)){
+    if(player.pos.y>=o.max.y-0.05)continue;
+    if(player.vel.y>0.2&&player.pos.y<o.max.y&&o.max.y-player.pos.y<=1.7)continue; // 只在“一跳能上”的方块上放行，撞高墙不穿模
+    if(player.vel.y<=0.2&&o.max.y>player.pos.y&&o.max.y-player.pos.y<=STEP_UP){player.pos.y=o.max.y;player.vel.y=0;player.onGround=true;continue;} // 只向上走上（不把已站高处的玩家拉回低台阶）
+    if(player.vel.z>0.0001)player.pos.z=o.min.z-P_RADIUS;else if(player.vel.z<-0.0001)player.pos.z=o.max.z+P_RADIUS; // 【碰撞修复】推回加浮点容差（同 x 方向）
+  }
+  const half = mapSize/2 - 2;
+  player.pos.x=Math.max(-half,Math.min(half,player.pos.x));
+  player.pos.z=Math.max(-half,Math.min(half,player.pos.z));
+  camera.position.set(player.pos.x,player.pos.y+EYE,player.pos.z);
+  if(shake>0){camera.position.x+=(Math.random()-0.5)*shake;camera.position.y+=(Math.random()-0.5)*shake;shake=Math.max(0,shake-dt*1.5);}
+  camera.rotation.set(pitch,yaw,0);
+  lastHurt+=dt;
+  // 【已删除自动回血】血量只能靠医疗包（联机还有重生）恢复，受伤后不会自己长血
+  if(boltTimer>0){ boltTimer-=dt; if(boltTimer<0) boltTimer=0; }
+  fireTimer-=dt;
+  if(firing&&fireTimer<=0&&!netDead)shoot();
+  if(reloading){reloadTimer-=dt;if(reloadTimer<=0){
+    const need=currentWeapon.mag-ammo;
+    const take=Math.min(need,reserve);
+    ammo+=take; reserve-=take;
+    reserves[currentWeaponId]=reserve; // 【拾取系统】换弹后同步各枪备用弹药
+    reloading=false;
+  }}
+  bobT+=(Math.abs(player.vel.x)+Math.abs(player.vel.z))*dt*(player.onGround?1:0);
+  gunKick=Math.max(0,gunKick-dt*7);
+  gun.position.z=-0.5+gunKick*0.09;
+  gun.position.y=-0.22+Math.sin(bobT*1.6)*0.012;
+  let boltRot=0;
+  if(boltTimer>0){
+    const progress=1-(boltTimer/0.8);
+    boltRot = -0.4 * Math.sin(progress*Math.PI);
+  }
+  gun.rotation.x=(reloading?-0.9*Math.sin((1-reloadTimer/currentWeapon.reload)*Math.PI):gunKick*0.15) + boltRot;
+  if(flashMesh.visible){flashTimer-=dt;if(flashTimer<=0)flashMesh.visible=false;}
+}
+function startReload(){
+  if(gameState!=='playing'||paused||reloading||ammo===currentWeapon.mag||reserve<=0)return;
+  reloading=true; reloadTimer=currentWeapon.reload; sfx.reload();
+}
+function damagePlayer(d, from){
+  if(gameState!=='playing'||player.hp<=0||netDead)return;
+  if(from!=null)lastHitBy=from;
+  player.hp-=d;lastHurt=0;damageFlash=0.7;shake=0.12;
+  sfx.hurt();
+  if(player.hp<=0){
+    player.hp=0;
+    if(mode===4&&netCoop){
+      // 【合作模式】血量归零 → 倒地（不是死亡）：不能动不能打，视角切到队友身上，等队友来救
+      coopDowned=true; netDead=false; coopReviveT=0;
+      netSend({type:'state',pos:[player.pos.x,player.pos.y,player.pos.z],yaw,pitch,hp:0,alive:true,downed:true});
+      lastHitBy=null;
+      showMsg('😵 你倒下了！等队友走到身边碰 5 秒救你…',3);
+    }
+    else if(mode===4){
+      netDead=true; netRespawnTimer=3.5;
+      netSend({type:'state',pos:[player.pos.x,player.pos.y,player.pos.z],yaw,pitch,hp:0,alive:false});
+      netSend({type:'died',killer:lastHitBy}); // 上报击杀者，服务器给其记一次击杀
+      lastHitBy=null;
+      showMsg('💀 你被击杀了！即将重生…',3);
+    }
+    else gameOver(false);
+  }
+}
+
+// ================= 射击 =================
+const _v2=new THREE.Vector2(0,0);
+const tracerMat=new THREE.LineBasicMaterial({color:0xffe08a,transparent:true,opacity:0.9});
+const _mw=new THREE.Vector3();
+function shoot(){
+  if(netDead)return;
+  if(netCoop&&coopDowned)return; // 【合作模式】倒地期间不能开火
+  if(reloading)return;
+  if(boltTimer>0)return;
+  const rate = 60/currentWeapon.rpm;
+  fireTimer=rate;
+  if(ammo<=0){sfx.empty();showMsg('按 R 换弹!',0.9);return;}
+  ammo--;gunKick=1;
+  // 后坐力：每开一枪枪口微微上跳（狙击单发更明显），可向下拖动/移动鼠标压枪
+  pitch+=(currentWeaponType==='sniper'?0.016:0.008);
+  if(pitch>1.45)pitch=1.45;
+  flashMesh.visible=true;flashTimer=0.045;
+  sfx.shoot();
+  if(currentWeaponType==='sniper'){
+    boltTimer=0.8;
+  }
+  raycaster.setFromCamera(_v2,camera);
+  const d=raycaster.ray.direction;
+  const spread = currentWeapon.spread || 0.014;
+  d.x+=(Math.random()-0.5)*spread; d.y+=(Math.random()-0.5)*spread; d.z+=(Math.random()-0.5)*spread;
+  d.normalize();
+  const hits=raycaster.intersectObjects(shootables,true);
+  let end;
+  if(hits.length){
+    const h=hits[0];end=h.point.clone();
+    const er=h.object.userData.enemyRef;
+    const cr=h.object.userData.coopId; // 【合作模式】服务器托管的怪物
+    const nr=h.object.userData.netRef;
+    if(er){const head=!!h.object.userData.head;damageEnemy(er, currentWeapon.damage * (head?currentWeapon.headMul:1), head);}
+    else if(cr){
+      // 打服务器托管的怪物：伤害上报服务器统一结算
+      const head=!!h.object.userData.head;
+      if(net&&net.readyState===1)netSend({type:'damage_enemy',id:cr,dmg:currentWeapon.damage*(head?currentWeapon.headMul:1)});
+      spawnSparks(end,0xffcc66,4,1); showHitmarker(); sfx.hit();
+    }
+    else if(nr&&nr.id!==netId){
+      if(netCoop){
+        // 【合作模式】队友之间子弹不扣血，打中只冒火花
+        spawnSparks(end,0x66aaff,4,1);
+      }else{
+        const head=!!h.object.userData.head;
+        const pd=PVP_DAMAGE[currentWeaponId]||{body:5,head:11};
+        netSend({type:'hit',target:nr.id,dmg:head?pd.head:pd.body,head});
+        spawnSparks(end,0x66aaff,4,1);
+      }
+    }
+    else spawnSparks(end,0xffcc66,4,1);
+  }else end=raycaster.ray.origin.clone().addScaledVector(d,120);
+  spawnTracer(end);
+  if(ammo===0)showMsg('按 R 换弹!',1.2);
+}
+function spawnTracer(end){
+  flashMesh.getWorldPosition(_mw);
+  const g=new THREE.BufferGeometry().setFromPoints([_mw.clone(),end]);
+  const line=new THREE.Line(g,tracerMat);
+  scene.add(line);tracers.push({line,life:0.06});
+}
+function updateTracers(dt){
+  for(let i=tracers.length-1;i>=0;i--){
+    tracers[i].life-=dt;
+    if(tracers[i].life<=0){scene.remove(tracers[i].line);tracers.splice(i,1);}
+  }
+}
+
+// ================= 敌人 =================
+const eBodyGeo=new THREE.BoxGeometry(0.8,1.1,0.5);
+const eHeadGeo=new THREE.BoxGeometry(0.55,0.5,0.55);
+const eEyeGeo=new THREE.BoxGeometry(0.1,0.08,0.05);
+const eGunGeo=new THREE.BoxGeometry(0.12,0.12,0.6);
+const eLegGeo=new THREE.BoxGeometry(0.26,0.32,0.3);
+const eEyeMat=new THREE.MeshBasicMaterial({color:0xff2222});
+function spawnEnemy(){
+  const half = mapSize/2 - 10;
+  let a=Math.random()*Math.PI*2, r=half*0.6 + Math.random()*half*0.3;
+  // 【地图随机化】敌人出生避开建筑内部空腔，防止卡在楼里出不来
+  for(let t=0;t<20;t++){
+    const px=Math.cos(a)*r, pz=Math.sin(a)*r;
+    let bad=false;
+    for(const ib of innerBoxes){ if(px>ib.min.x&&px<ib.max.x&&pz>ib.min.z&&pz<ib.max.z){bad=true;break;} }
+    if(!bad)break;
+    a=Math.random()*Math.PI*2; r=half*0.6 + Math.random()*half*0.3;
+  }
+  const bodyMat=new THREE.MeshStandardMaterial({color:0x99323a,roughness:.8});
+  const headMat=new THREE.MeshStandardMaterial({color:0x2d2d33,roughness:.6});
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(eBodyGeo,bodyMat);body.position.y=0.85;body.castShadow=true;
+  const head=new THREE.Mesh(eHeadGeo,headMat);head.position.y=1.65;head.castShadow=true;head.userData.head=true;
+  const eyeL=new THREE.Mesh(eEyeGeo,eEyeMat);eyeL.position.set(-0.14,1.68,0.29);
+  const eyeR=eyeL.clone();eyeR.position.x=0.14;
+  const egun=new THREE.Mesh(eGunGeo,headMat);egun.position.set(0.3,1.1,0.3);
+  const legL=new THREE.Mesh(eLegGeo,bodyMat);legL.position.set(-0.18,0.16,0);
+  const legR=legL.clone();legR.position.x=0.18;
+  g.add(body,head,eyeL,eyeR,egun,legL,legR);
+  g.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
+  const e={mesh:g,pos:g.position,hp:100,bodyMat,headMat,flash:0,radius:0.5,
+    speed:2.2+Math.random()*1.3, // 【取消波次】敌人速度不再随波次提升
+    shootTimer:1.5+Math.random()*2,strafeDir:Math.random()<0.5?1:-1,strafeTimer:Math.random()*2};
+  g.traverse(o=>o.userData.enemyRef=e);
+  scene.add(g);enemies.push(e);
+  rebuildShootables();
+}
+function damageEnemy(e,dmg,head){
+  e.hp-=dmg;e.flash=0.12;
+  e.bodyMat.emissive.setHex(0xff3333);e.headMat.emissive.setHex(0xff3333);
+  showHitmarker();sfx.hit();
+  if(e.hp<=0)killEnemy(e,head);
+}
+function killEnemy(e,head){
+  spawnSparks(new THREE.Vector3(e.pos.x,1.2,e.pos.z),0xd32f2f,12,2);
+  spawnSparks(new THREE.Vector3(e.pos.x,1.2,e.pos.z),0xffd54f,6,1.5);
+  scene.remove(e.mesh);enemies.splice(enemies.indexOf(e),1);
+  rebuildShootables();
+  kills++;score+=head?150:100;
+  sfx.kill();
+}
+function collideEnemy(e){
+  const r=e.radius;
+  for(const o of obstacles){
+    if(e.pos.x+r>o.min.x&&e.pos.x-r<o.max.x&&e.pos.z+r>o.min.z&&e.pos.z-r<o.max.z&&o.min.y<1.9){
+      const px1=o.max.x+r-e.pos.x,px2=e.pos.x-(o.min.x-r);
+      const pz1=o.max.z+r-e.pos.z,pz2=e.pos.z-(o.min.z-r);
+      const m=Math.min(px1,px2,pz1,pz2);
+      if(m===px1)e.pos.x=o.max.x+r;else if(m===px2)e.pos.x=o.min.x-r;
+      else if(m===pz1)e.pos.z=o.max.z+r;else e.pos.z=o.min.z-r;
+    }
+  }
+}
+function updateEnemies(dt){
+  for(const e of enemies){
+    const dx=player.pos.x-e.pos.x,dz=player.pos.z-e.pos.z;
+    const dist=Math.hypot(dx,dz)||0.001;
+    const nx=dx/dist,nz=dz/dist;
+    e.mesh.rotation.y=Math.atan2(nx,nz);
+    e.strafeTimer-=dt;
+    if(e.strafeTimer<=0){e.strafeDir*=-1;e.strafeTimer=1+Math.random()*2.2;}
+    let mx,mz;
+    if(dist>11){mx=nx;mz=nz;}
+    else if(dist<5){mx=-nx;mz=-nz;}
+    else{mx=-nz*e.strafeDir;mz=nx*e.strafeDir;}
+    e.pos.x+=mx*e.speed*dt;e.pos.z+=mz*e.speed*dt;
+    collideEnemy(e);
+    const half=mapSize/2-2;
+    e.pos.x=Math.max(-half,Math.min(half,e.pos.x));
+    e.pos.z=Math.max(-half,Math.min(half,e.pos.z));
+    if(e.flash>0){e.flash-=dt;if(e.flash<=0){e.bodyMat.emissive.setHex(0);e.headMat.emissive.setHex(0);}}
+    e.shootTimer-=dt;
+    if(e.shootTimer<=0&&dist<42){
+      shootEnemyBullet(e);
+      e.shootTimer=Math.max(0.9,1.7+Math.random()*1.6); // 【取消波次】射击间隔不再随波次缩短
+    }
+  }
+  for(let i=0;i<enemies.length;i++)for(let j=i+1;j<enemies.length;j++){
+    const a=enemies[i],b=enemies[j];
+    const ddx=b.pos.x-a.pos.x,ddz=b.pos.z-a.pos.z,d2=ddx*ddx+ddz*ddz;
+    if(d2<1.44&&d2>1e-6){
+      const d=Math.sqrt(d2),p=(1.2-d)/2/d;
+      a.pos.x-=ddx*p;a.pos.z-=ddz*p;b.pos.x+=ddx*p;b.pos.z+=ddz*p;
+    }
+  }
+}
+
+// ================= 敌人红球 =================
+const ballGeo=new THREE.SphereGeometry(0.13,10,10);
+const ballMat=new THREE.MeshBasicMaterial({color:0xff2222});
+function shootEnemyBullet(e){
+  const from=new THREE.Vector3(e.pos.x,1.5,e.pos.z);
+  const to=new THREE.Vector3(player.pos.x,player.pos.y+1.2,player.pos.z);
+  const dir=to.sub(from).normalize();
+  dir.x+=(Math.random()-0.5)*0.07;dir.y+=(Math.random()-0.5)*0.05;dir.z+=(Math.random()-0.5)*0.07;
+  dir.normalize();
+  const mesh=new THREE.Mesh(ballGeo,ballMat);
+  mesh.position.copy(from);
+  scene.add(mesh);
+  enemyBullets.push({mesh,vel:dir.multiplyScalar(16),life:5});
+  sfx.eshoot();
+}
+function updateEnemyBullets(dt){
+  for(let i=enemyBullets.length-1;i>=0;i--){
+    const b=enemyBullets[i];
+    b.life-=dt;
+    b.mesh.position.addScaledVector(b.vel,dt);
+    const p=b.mesh.position;
+    let dead=b.life<=0||p.y<=0.02;
+    if(!dead)for(const o of obstacles){
+      if(p.x>o.min.x&&p.x<o.max.x&&p.y>o.min.y&&p.y<o.max.y&&p.z>o.min.z&&p.z<o.max.z){
+        dead=true;spawnSparks(p,0xff5533,3,0.8);break;
+      }
+    }
+    if(!dead){
+      const cy=Math.max(player.pos.y+0.25,Math.min(p.y,player.pos.y+1.55));
+      const ddx=p.x-player.pos.x,ddy=p.y-cy,ddz=p.z-player.pos.z;
+      if(ddx*ddx+ddy*ddy+ddz*ddz<0.25){damagePlayer(25);dead=true;} // 【红球4下击杀】25×4=100
+    }
+    if(dead){scene.remove(b.mesh);enemyBullets.splice(i,1);}
+  }
+}
+
+// ================= 【新增·合作模式】服务器托管的怪物（双人打怪） =================
+// 怪物由服务器统一生成/移动/射击，客户端只负责渲染和上报伤害，保证两人看到同一批怪物
+function clearCoopLocal(){
+  for(const e of coopEnemies)scene.remove(e.mesh);
+  for(const k in coopBallMap)scene.remove(coopBallMap[k]);
+  coopEnemies.length=0;
+  for(const k in coopEnemyMap)delete coopEnemyMap[k];
+  for(const k in coopBallMap)delete coopBallMap[k];
+  rebuildShootables();
+}
+function createCoopEnemy(id,x,z){
+  const bodyMat=new THREE.MeshStandardMaterial({color:0x99323a,roughness:.8});
+  const headMat=new THREE.MeshStandardMaterial({color:0x2d2d33,roughness:.6});
+  const g=new THREE.Group();
+  const body=new THREE.Mesh(eBodyGeo,bodyMat);body.position.y=0.85;body.castShadow=true;
+  const head=new THREE.Mesh(eHeadGeo,headMat);head.position.y=1.65;head.castShadow=true;head.userData.head=true;
+  const eyeL=new THREE.Mesh(eEyeGeo,eEyeMat);eyeL.position.set(-0.14,1.68,0.29);
+  const eyeR=eyeL.clone();eyeR.position.x=0.14;
+  const egun=new THREE.Mesh(eGunGeo,headMat);egun.position.set(0.3,1.1,0.3);
+  const legL=new THREE.Mesh(eLegGeo,bodyMat);legL.position.set(-0.18,0.16,0);
+  const legR=legL.clone();legR.position.x=0.18;
+  g.add(body,head,eyeL,eyeR,egun,legL,legR);
+  g.position.set(x,0,z);
+  g.traverse(o=>{ if(o.isMesh) o.userData.coopId=id; });
+  scene.add(g);
+  const e={id,x,z,targetX:x,targetZ:z,hp:100,mesh:g,flash:0,bodyMat,headMat};
+  coopEnemies.push(e);
+  coopEnemyMap[id]=e;
+  rebuildShootables();
+  return e;
+}
+function updateCoopEnemies(dt){
+  for(const e of coopEnemies){
+    // 平滑插值到服务器给出的最新位置
+    e.x+= (e.targetX-e.x)*Math.min(1,dt*8);
+    e.z+= (e.targetZ-e.z)*Math.min(1,dt*8);
+    e.mesh.position.set(e.x,0,e.z);
+    e.mesh.rotation.y=Math.atan2(e.targetX-e.x, e.targetZ-e.z);
+    if(e.flash>0){e.flash-=dt;if(e.flash<=0){e.bodyMat.emissive.setHex(0);e.headMat.emissive.setHex(0);}}
+  }
+}
+function updateCoopBullets(dt){
+  // 红球用服务器下发的初速在本地推进，画面更平滑（位置仍以服务器为准）
+  for(const k in coopBallMap){
+    const m=coopBallMap[k];
+    if(m.vel)m.position.addScaledVector(m.vel,dt);
+  }
+}
+
+// ================= 拾取物品（弹药 / 医疗包）=================
+// 【新增·拾取系统】三种物品：步枪弹药(黄)、狙击弹药(紫)、医疗包(白+红十字)
+const ITEM_CFG={
+  rifle_ammo:{color:0xffc107,label:'步枪弹药 +30',take(){reserves.ak47+=30;if(currentWeaponId==='ak47')reserve+=30;}},
+  sniper_ammo:{color:0x9c27b0,label:'狙击弹药 +7',take(){reserves.awp+=7;if(currentWeaponId==='awp')reserve+=7;}},
+  medkit:{color:0xf5f5f5,label:'医疗包 +50 血量',take(){player.hp=Math.min(100,player.hp+50);}}
+};
+function itemMesh(itype){
+  const g=new THREE.Group();
+  const cfg=ITEM_CFG[itype];
+  const mat=new THREE.MeshStandardMaterial({color:cfg.color,roughness:.45,emissive:cfg.color,emissiveIntensity:.4});
+  const box=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.35,0.5),mat);
+  box.position.y=0.18; g.add(box);
+  if(itype==='medkit'){
+    const red=new THREE.MeshStandardMaterial({color:0xe53935,emissive:0xe53935,emissiveIntensity:.5});
+    const c1=new THREE.Mesh(new THREE.BoxGeometry(0.52,0.1,0.08),red); c1.position.set(0,0.18,0.03); g.add(c1);
+    const c2=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.28,0.08),red); c2.position.set(0,0.18,-0.03); g.add(c2);
+  }else{
+    const mark=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.2,0.1),new THREE.MeshStandardMaterial({color:0x1a1a1a,roughness:.6}));
+    mark.position.set(0,0.18,0); g.add(mark);
+  }
+  return g;
+}
+function addItem(itype,x,z,id){
+  const mesh=itemMesh(itype);
+  mesh.position.set(x,0.28,z);
+  scene.add(mesh);
+  items.push({id,itype,x,z,mesh,life:Math.random()*6});
+}
+function removeItemByIndex(i){ scene.remove(items[i].mesh); items.splice(i,1); }
+function canPlaceItem(x,z){
+  if(Math.hypot(x,z)<24)return false;                 // 避开中心出生区
+  for(const o of obstacles){
+    if(x>o.min.x-1.2&&x<o.max.x+1.2&&z>o.min.z-1.2&&z<o.max.z+1.2)return false; // 避开障碍物
+  }
+  for(const ib of innerBoxes){
+    if(x>ib.min.x&&x<ib.max.x&&z>ib.min.z&&z<ib.max.z)return false;              // 避开楼内
+  }
+  for(const it of items) if(Math.hypot(it.x-x,it.z-z)<6) return false;            // 物品之间留间距
+  return true;
+}
+function randomItemType(){ const r=Math.random(); return r<0.4?'rifle_ammo':(r<0.7?'sniper_ammo':'medkit'); }
+function trySpawnItem(id){
+  const half=mapSize/2-12;
+  for(let t=0;t<30;t++){
+    const x=(Math.random()*2-1)*half, z=(Math.random()*2-1)*half;
+    if(canPlaceItem(x,z)){ addItem(randomItemType(),x,z,id||('L'+((Math.random()*1e9)|0))); return true; }
+  }
+  return false;
+}
+function updateItems(dt){
+  // 旋转+漂浮动画
+  for(const it of items){ it.life+=dt; it.mesh.rotation.y+=dt*1.6; it.mesh.position.y=0.28+Math.sin(it.life*2)*0.08; }
+  // 单机模式：场上物品不足时自动刷新
+  if(mode!==4){ itemTimer+=dt; if(items.length<8&&itemTimer>=4){ itemTimer=0; trySpawnItem(); } } // 【物品加量】场上最多8个、每4秒刷
+  // 拾取检测（碰到就捡）
+  for(let i=items.length-1;i>=0;i--){
+    const it=items[i];
+    if(Math.hypot(player.pos.x-it.x,player.pos.z-it.z)<1.35&&player.pos.y+1.7>0.05){
+      const pid=it.id;
+      ITEM_CFG[it.itype].take();
+      showMsg('🎒 拾取：'+ITEM_CFG[it.itype].label,1.4);
+      sfx.reload();
+      removeItemByIndex(i);
+      if(mode===4&&net&&net.readyState===1) netSend({type:'pickup', id:pid}); // 联机：上报服务器广播给其他人
+    }
+  }
+}
+
+// ================= 粒子 =================
+const sparkGeo=new THREE.BoxGeometry(0.07,0.07,0.07);
+const sparkMats={};
+function spawnSparks(pos,color,n,power){
+  let mat=sparkMats[color];
+  if(!mat)mat=sparkMats[color]=new THREE.MeshBasicMaterial({color});
+  for(let i=0;i<n;i++){
+    const m=new THREE.Mesh(sparkGeo,mat);
+    m.position.copy(pos);
+    particles.push({mesh:m,life:0.5,vel:new THREE.Vector3((Math.random()-0.5)*5*power,(Math.random()*4+1)*power,(Math.random()-0.5)*5*power)});
+    scene.add(m);
+  }
+}
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];p.life-=dt;
+    if(p.life<=0){scene.remove(p.mesh);particles.splice(i,1);continue;}
+    p.vel.y-=14*dt;
+    p.mesh.position.addScaledVector(p.vel,dt);
+    if(p.mesh.position.y<0.04){p.mesh.position.y=0.04;p.vel.y*=-0.4;p.vel.x*=0.7;p.vel.z*=0.7;}
+    p.mesh.scale.setScalar(Math.min(1,p.life/0.3));
+  }
+}
+
+// ================= 模式逻辑 =================
+function updateMode(dt){
+  if(mode===4){
+    if(netCoop){
+      // 【合作模式】两人一起打怪物：显示击杀/怪物数/救援进度；倒地判定
+      if(coopDowned){
+        // 倒地中：如果连一个能救你的队友都没有（队友也倒了或不在线）→ 合作失败
+        let savior=null;
+        for(const id in netPlayers){ const np=netPlayers[id]; if(np.alive&&!np.downed){savior=np;break;} }
+        if(!savior){ gameOver(false); return; }
+        infoEl.textContent='😵 你倒下了 | 等队友来救…';
+      }else{
+        // 存活中：寻找倒地队友并靠近救援（碰满 5 秒复活，复活后只有 10 血）
+        let target=null;
+        for(const id in netPlayers){ const np=netPlayers[id]; if(np.downed){target=np;break;} }
+        if(target){
+          const d=Math.hypot(player.pos.x-target.targetPos.x, player.pos.z-target.targetPos.z);
+          if(d<2.4&&player.pos.y<=1.2){
+            coopReviveT+=dt;
+            if(coopReviveT>=5){
+              coopReviveT=0;
+              netSend({type:'revive',target:target.id});
+              showMsg('🩹 救援成功！',1.5);
+            }
+          }else coopReviveT=0;
+          infoEl.textContent='🤝 正在救援队友 '+coopReviveT.toFixed(1)+'/5 | 击杀 '+kills;
+        }else{
+          infoEl.textContent='🤝 合作打怪 | 击杀 '+kills+' | 怪物 '+coopEnemies.length+'/30';
+        }
+      }
+    }else{
+      infoEl.textContent='联机对战 | 击杀 '+kills+' | 在线玩家 '+(Object.keys(netPlayers).length+1)+(netMonsters?(' | 怪物 '+coopEnemies.length+'/30'):'');
+    }
+    return;
+  }
+  if(mode===1){
+    timeSurvived+=dt;
+    // 【持续刷怪】开局 6 只，之后不管杀不杀，每隔 spawnInterval 秒自动补 1 只；
+    // 每刷一只间隔就缩短一点（*0.93），越到后面出怪越快，最快 1.5 秒一只（上限 30 只）
+    spawnTimer-=dt;
+    if(spawnTimer<=0){
+      if(enemies.length<MAX_ENEMIES){ spawnEnemy(); }
+      spawnInterval=Math.max(1.5, spawnInterval*0.93);
+      spawnTimer=spawnInterval;
+    }
+    infoEl.textContent='击杀 '+kills+' | 存活 '+timeSurvived.toFixed(0)+'s | 敌人 '+enemies.length+'/'+MAX_ENEMIES;
+  }else if(mode===2){
+    spawnTimer-=dt;
+    if(spawnedCount<quota&&enemies.length<6&&spawnTimer<=0){spawnEnemy();spawnedCount++;spawnTimer=1.1;}
+    infoEl.textContent='剩余 '+(quota-kills)+' 名敌人 | 击杀 '+kills+' | 得分 '+score;
+    if(kills>=quota)gameOver(true);
+  }else{
+    timeLeft-=dt;spawnTimer-=dt;
+    if(enemies.length<7&&spawnTimer<=0){spawnEnemy();spawnTimer=0.9;}
+    infoEl.textContent='⏱ '+Math.ceil(Math.max(timeLeft,0))+'s | 击杀 '+kills+' | 得分 '+score;
+    if(timeLeft<=0)gameOver(true);
+  }
+}
+
+// ================= 小地图 =================
+function drawMinimap(){
+  const ctx=mmapCanvas.getContext('2d');
+  const w=150,h=150;
+  ctx.clearRect(0,0,w,h);
+  const half=mapSize/2;
+  const scale=w/(half*2);
+  for(const o of obstacles){
+    const cx=(o.min.x+o.max.x)/2, cz=(o.min.z+o.max.z)/2;
+    const dx=(cx+half)*scale, dy=(cz+half)*scale;
+    const bw=(o.max.x-o.min.x)*scale, bh=(o.max.z-o.min.z)*scale;
+    ctx.fillStyle='#555';
+    ctx.fillRect(dx-bw/2, dy-bh/2, Math.max(bw,1), Math.max(bh,1));
+  }
+  for(const e of enemies){
+    const dx=(e.pos.x+half)*scale, dy=(e.pos.z+half)*scale;
+    ctx.fillStyle='#ff3333';
+    ctx.beginPath();
+    ctx.arc(dx,dy,4,0,Math.PI*2);
+    ctx.fill();
+  }
+  for(const e of coopEnemies){ // 【合作模式】服务器托管的怪物也画到小地图
+    const dx=(e.x+half)*scale, dy=(e.z+half)*scale;
+    ctx.fillStyle='#ff3333';
+    ctx.beginPath();
+    ctx.arc(dx,dy,4,0,Math.PI*2);
+    ctx.fill();
+  }
+  const px=(player.pos.x+half)*scale, py=(player.pos.z+half)*scale;
+  ctx.fillStyle='#33ff33';
+  ctx.beginPath();
+  ctx.arc(px,py,5,0,Math.PI*2);
+  ctx.fill();
+  const dirLen=12;
+  const dx=-Math.sin(yaw)*dirLen, dz=-Math.cos(yaw)*dirLen;
+  ctx.strokeStyle='#33ff33';
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(px,py);
+  ctx.lineTo(px+dx, py+dz);
+  ctx.stroke();
+}
+setInterval(drawMinimap, 200);
+
+// ================= HUD =================
+function showMsg(t,d){msgEl.textContent=t;msgEl.style.opacity=1;msgTimer=d;}
+function showHitmarker(){hitEl.style.opacity=1;hitTimer=0.12;}
+function updateHUD(){
+  const hp=Math.max(0,Math.round(player.hp));
+  hpFill.style.width=hp+'%';
+  hpFill.style.background=hp>50?'linear-gradient(90deg,#66bb6a,#9ccc65)':hp>25?'linear-gradient(90deg,#ffa726,#ffcc80)':'linear-gradient(90deg,#ef5350,#e57373)';
+  hpText.textContent='HP '+hp;
+  const ammoDisplay = reloading ? '<span style="font-size:22px;color:#ffb74d">换弹中…</span>' : ammo+' <small>/ '+reserve+'</small>';
+  ammoEl.innerHTML=ammoDisplay;
+  lowhpEl.style.display=hp<=30&&gameState==='playing'?'block':'none';
+  vignEl.style.opacity=damageFlash;
+  currentFov += (targetFov - currentFov) * 0.12;
+  if(Math.abs(currentFov - targetFov) < 0.01) currentFov=targetFov;
+  if(camera.fov !== currentFov){camera.fov=currentFov; camera.updateProjectionMatrix();}
+}
+
+// ================= 主循环 =================
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),0.05);
+  if(gameState==='playing'&&!paused){
+    if(mode===4&&netDead){
+      netRespawnTimer-=dt;
+      if(netRespawnTimer<=0){
+        netDead=false; player.hp=100;
+        const sp=NET_SPAWNS[Math.floor(Math.random()*NET_SPAWNS.length)];
+        player.pos.set(sp[0],0,sp[1]);
+        player.vel.set(0,0,0);
+        yaw=0; pitch=0;
+        ammo=currentWeapon.mag; reserve=currentWeapon.reserve; reloading=false; reloadTimer=0;
+        netSend({type:'respawn',pos:[sp[0],0,sp[1]]});
+        showMsg('🔄 重生!',1);
+      }
+    }
+    updatePlayer(dt);
+    if((netCoop||netMonsters)&&mode===4){ updateCoopEnemies(dt); updateCoopBullets(dt); } // 【合作/对战】怪物由服务器托管
+    else { updateEnemies(dt); updateEnemyBullets(dt); }
+    updateItems(dt); // 【拾取系统】物品动画 / 拾取检测 / 单机自动刷新
+    updateMode(dt);
+    updateNetPlayers(dt);
+    if(msgTimer>0){msgTimer-=dt;if(msgTimer<=0)msgEl.style.opacity=0;}
+    if(hitTimer>0){hitTimer-=dt;if(hitTimer<=0)hitEl.style.opacity=0;}
+    damageFlash=Math.max(0,damageFlash-dt*1.6);
+  }
+  updateParticles(dt);
+  updateTracers(dt);
+  updateHUD();
+  renderer.render(scene,camera);
+}
+init();
+</script>
+</body>
+</html>
