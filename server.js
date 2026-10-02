@@ -37,7 +37,7 @@ const SPAWNS = [[-8, 30], [8, 30], [0, 35], [-12, 25], [12, 25]]; // 出生点
 let nextId = 1;
 
 // ===== 【地图随机化】与前端同一套地图生成算法（同种子 → 服务器与所有玩家看到同一张图）=====
-// 地图大小由房间决定：单机/合作 400，双人对战 150
+// 地图大小由房间决定：单机/合作 400，双人对战 220（两人不需要那么大）
 const MAP_SIZE = 400;
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const MAP_COLORS=[0x707a88,0x9c7a4d,0x5d5348,0x4a6fa5,0x7a5a8a,0x5a8a6a,0x8a6a5a];
@@ -226,8 +226,10 @@ wss.on('connection', (ws) => {
         c.name = (typeof m.name === 'string' ? m.name : '').slice(0, 12).trim() || ('玩家' + id);
 
         // ===== 【新增·房间系统】开始：校验房间号，区分“创建房间 / 加入房间” =====
+        // ===== 【V2.0 房间密码】创建房间时接收密码存入房间表；加入房间时校验密码 =====
         let room = (typeof m.room === 'string' ? m.room : '').trim().slice(0, 16);
         if (!room) room = 'default'; // 不带房间号的旧客户端进默认房间，保持向后兼容
+        const pwd = typeof m.password === 'string' ? m.password.trim() : '';
         let roomSet = rooms.get(room);
         if (room !== 'default') {
           if (m.create) {
@@ -242,18 +244,26 @@ wss.on('connection', (ws) => {
               ws.send(JSON.stringify({ type: 'roomerror', reason: '房间号「' + room + '」不存在，请让朋友先「创建房间」，或核对房间号是否输错' }));
               return;
             }
+            // 【V2.0 房间密码】加入有密码的房间必须密码正确，否则拒绝进入
+            if (roomSet.password && pwd !== roomSet.password) {
+              ws.send(JSON.stringify({ type: 'roomerror', reason: '房间密码错误，请核对密码后再加入' }));
+              return;
+            }
           }
         }
         if (!roomSet) {
-          // 【新增·合作模式】创建房间：合作房=双人打怪(大图400)，对战房=双人对战(小图150)
+          // 【新增·合作模式】创建房间：合作房=双人打怪(大图400)，对战房=双人对战(小图220)
           const isCoop = m.coop === true;
           const roomSize = isCoop ? 400 : (room === 'default' ? 400 : 150); // 【对战更小】双人对战房地图 150
           roomSet = { set: new Set(), seed: (Math.random() * 1e9) | 0, items: new Map(), itemSeq: 1, obs: null, inner: null,
                       coop: isCoop, size: roomSize, monsters: isCoop || (room !== 'default'), // 【对战刷怪】对战房也有怪物（开局6只越刷越快）
+                      password: pwd || null, // 【V2.0 房间密码】创建房间时保存密码（不填则为无密码房）
                       coopEnemies: new Map(), coopBullets: [], enemySeq: 0, ballSeq: 0, spawnT: 8, spawnGap: 8 }; // 【持续刷怪】开局8秒后自动补怪，间隔越刷越短 // 【合作模式】服务器托管的怪物/红球
           const mm = buildMapAABBs(roomSet.seed, roomSet.size);
           roomSet.obs = mm.obs; roomSet.inner = mm.inner;
           rooms.set(room, roomSet);
+          // 【物品加量V2.1】建房后立即补一批物品，开局就有弹药捡（不用等 4 秒刷新）
+          refillRoom(roomSet, room);
           if (roomSet.monsters) for (let i = 0; i < 6; i++) spawnCoopEnemy(roomSet); // 【持续刷怪】合作房/对战房开局预生成6只，之后自动越刷越快
         }
         if (c.room && rooms.has(c.room)) rooms.get(c.room).set.delete(id); // 同一连接换房间时先退出旧房间
@@ -296,7 +306,7 @@ wss.on('connection', (ws) => {
         const t = clients.get(m.target);
         // 【新增·房间系统】只能打到同一房间的玩家
         if (t && t.room === c.room && t.ws.readyState === 1) {
-          t.ws.send(JSON.stringify({ type: 'hit', from: c.id, dmg: m.dmg, head: !!m.head }));
+          t.ws.send(JSON.stringify({ type: 'hit', from: id, dmg: m.dmg, head: !!m.head }));
         }
         break;
       }
@@ -370,28 +380,31 @@ wss.on('connection', (ws) => {
   ws.on('error', () => {});
 });
 
-// ===== 【拾取系统】每个有人的房间每 4 秒补货，场上保持 8 个物品（位置避开障碍物/楼内/出生区）=====
+// ===== 【拾取系统】每个有人的房间定时补货，场上保持 16 个物品（位置避开障碍物/楼内/出生区）=====
+function refillRoom(r, room){
+  // 【物品加量V2.1】场上保持 16 个物品，弹药/医疗包更容易捡到
+  while (r.items.size < 16) {
+    const rnd = (Math.random() * 3) | 0;
+    const itype = rnd === 0 ? 'rifle_ammo' : (rnd === 1 ? 'sniper_ammo' : 'medkit');
+    const half = r.size / 2 - 12;
+    let placed = false;
+    for (let t = 0; t < 30; t++) {
+      const x = (Math.random() * 2 - 1) * half, z = (Math.random() * 2 - 1) * half;
+      const arr = []; for (const it of r.items.values()) arr.push(it);
+      if (canPlaceItem(x, z, r.obs, r.inner, arr)) {
+        const id = 'I' + (r.itemSeq++);
+        r.items.set(id, { itype, x, z });
+        broadcastRoom({ type: 'item_add', id, itype, x, z }, room);
+        placed = true; break;
+      }
+    }
+    if (!placed) break; // 实在找不到合法位置就等下一轮
+  }
+}
 function refillAllRooms(){
   for (const [room, r] of rooms) {
     if (r.set.size === 0) continue;
-    // 【物品加量】场上保持 8 个物品，弹药/医疗包更容易捡到
-    while (r.items.size < 8) {
-      const rnd = (Math.random() * 3) | 0;
-      const itype = rnd === 0 ? 'rifle_ammo' : (rnd === 1 ? 'sniper_ammo' : 'medkit');
-      const half = r.size / 2 - 12;
-      let placed = false;
-      for (let t = 0; t < 30; t++) {
-        const x = (Math.random() * 2 - 1) * half, z = (Math.random() * 2 - 1) * half;
-        const arr = []; for (const it of r.items.values()) arr.push(it);
-        if (canPlaceItem(x, z, r.obs, r.inner, arr)) {
-          const id = 'I' + (r.itemSeq++);
-          r.items.set(id, { itype, x, z });
-          broadcastRoom({ type: 'item_add', id, itype, x, z }, room);
-          placed = true; break;
-        }
-      }
-      if (!placed) break; // 实在找不到合法位置就等下一轮
-    }
+    refillRoom(r, room);
   }
 }
 setInterval(refillAllRooms, 4000);
@@ -468,12 +481,17 @@ function coopTick(){
     // 红球移动 + 撞障碍 + 命中玩家
     for (let i = r.coopBullets.length - 1; i >= 0; i--) {
       const b = r.coopBullets[i];
-      b.x += b.vx * 0.1; b.y += b.vy * 0.1; b.z += b.vz * 0.1;
       b.life -= 0.1;
       let dead = b.life <= 0 || b.y <= 0.02;
-      if (!dead) {
+      // 【碰撞修复V2.1】细分步进移动（每帧拆成 8 小步），防止红球太快直接穿过薄墙
+      const steps = 8;
+      const sx = b.vx * 0.1 / steps, sy = b.vy * 0.1 / steps, sz = b.vz * 0.1 / steps;
+      for (let s = 0; s < steps && !dead; s++) {
+        b.x += sx; b.y += sy; b.z += sz;
+        // 【碰撞修复V2.1】加 y 轴检测：楼板/走廊平台只有在红球真正碰到它（y 在板厚范围内）时才挡；
+        // 之前漏了 y 轴，红球一飞进楼的 x/z 投影就被判撞墙，导致躲在楼里/楼后的玩家永远打不到
         for (const o of r.obs) {
-          if (b.x > o.min.x && b.x < o.max.x && b.z > o.min.z && b.z < o.max.z) { dead = true; break; }
+          if (b.x > o.min.x && b.x < o.max.x && b.y > o.min.y && b.y < o.max.y && b.z > o.min.z && b.z < o.max.z) { dead = true; break; }
         }
       }
       if (!dead) {
