@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AssemblyName>方块突击</AssemblyName>
+    <RootNamespace>FangKuaiBrowser</RootNamespace>
+    <ApplicationIcon>launcher.ico</ApplicationIcon>
+    <Version>2.1.2</Version>
+    <SatelliteResourceLanguages>zh-Hans</SatelliteResourceLanguages>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 【V2.1.1】资源包改为 Content 内容文件：单文件发布时随 exe 打包，运行时被自动解压到磁盘，
+         避免 EmbeddedResource 在单文件模式下流损坏（ZipArchive 报 End of Central Directory） -->
+    <Content Include="..\_bundle.zip" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
