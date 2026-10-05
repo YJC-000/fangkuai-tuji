@@ -37,8 +37,8 @@ const SPAWNS = [[-8, 30], [8, 30], [0, 35], [-12, 25], [12, 25]]; // 出生点
 let nextId = 1;
 
 // ===== 【地图随机化】与前端同一套地图生成算法（同种子 → 服务器与所有玩家看到同一张图）=====
-// 地图大小由房间决定：单机/合作 400，双人对战 220（两人不需要那么大）
-const MAP_SIZE = 400;
+// 【V3.0】地图大小：单机/合作 600，双人对战 150（两人不需要那么大）
+const MAP_SIZE = 600;
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 const MAP_COLORS=[0x707a88,0x9c7a4d,0x5d5348,0x4a6fa5,0x7a5a8a,0x5a8a6a,0x8a6a5a];
 const NET_SPAWN_PTS=[[-8,30],[8,30],[0,35],[-12,25],[12,25]];
@@ -55,34 +55,38 @@ function mapGenSpec(seed, size){
     }
     boxes.push({type:'box',x,z,w:1.6+R()*2.4,h:0.9+R()*0.5,d:1.6+R()*2.4,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
   }
-  // 【障碍加多】大图20个掩体、小图14个，位置/大小/颜色随机
-  for(let i=0;i<(size>=300?20:14);i++){
-    let a=R()*Math.PI*2, r=half*0.30+R()*half*0.55;
+  // 【V3.0 掩体加多】大图32个、小图18个；形状=方块/圆柱/四棱锥
+  for(let i=0;i<(size>=300?32:18);i++){
+    let a=R()*Math.PI*2, r=half*0.25+R()*half*0.6;
     let x=Math.cos(a)*r, z=Math.sin(a)*r;
     for(let t=0;t<15;t++){
       let bad=false;
       for(const b of boxes){ if(Math.hypot(b.x-x,b.z-z)<5) bad=true; }
       if(!bad)break;
-      a=R()*Math.PI*2; r=half*0.30+R()*half*0.55; x=Math.cos(a)*r; z=Math.sin(a)*r;
+      a=R()*Math.PI*2; r=half*0.25+R()*half*0.6; x=Math.cos(a)*r; z=Math.sin(a)*r;
     }
-    if(R()<0.72) boxes.push({type:'box',x,z,w:1.5+R()*3,h:1+R()*2.2,d:1.5+R()*3,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
-    else boxes.push({type:'cyl',x,z,r:0.9+R()*1.6,h:1.2+R()*2.2,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
+    const shR=R();
+    if(shR<0.6) boxes.push({type:'box',x,z,w:1.5+R()*3,h:1+R()*2.2,d:1.5+R()*3,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
+    else if(shR<0.85) boxes.push({type:'cyl',x,z,r:0.9+R()*1.6,h:1.2+R()*2.2,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
+    else boxes.push({type:'tetra',x,z,r:1.0+R()*1.2,h:1+R()*1.6,color:MAP_COLORS[(R()*MAP_COLORS.length)|0]});
   }
   const buildings=[]; const bpos=[];
-  // 【楼宇】大图3栋、小图2栋
-  for(let i=0;i<(size>=300?3:2);i++){
+  // 【V3.0】大图 3 栋楼房 + 2 座高塔，小图 2 栋楼房
+  const placeBuilding=()=>{
     let cx=0,cz=0;
     for(let t=0;t<30;t++){
-      const a=R()*Math.PI*2, r=half*0.5+R()*half*0.3;
+      const a=R()*Math.PI*2, r=half*0.45+R()*half*0.32;
       cx=Math.cos(a)*r; cz=Math.sin(a)*r;
-      let ok=Math.hypot(cx,cz)>half*0.45;
-      for(const p of bpos) if(Math.hypot(cx-p[0],cz-p[1])<60) ok=false;
-      for(const b of boxes) if(Math.hypot(b.x-cx,b.z-cz)<14) ok=false;
+      let ok=Math.hypot(cx,cz)>half*0.4;
+      for(const p of bpos) if(Math.hypot(cx-p[0],cz-p[1])<55) ok=false;
+      for(const b of boxes) if(Math.hypot(b.x-cx,b.z-cz)<13) ok=false;
       if(ok)break;
     }
-    bpos.push([cx,cz]);
-    buildings.push({cx,cz,w:18,d:14,h:9,color:0x4a5568});
-  }
+    bpos.push([cx,cz]); return {cx,cz};
+  };
+  const nBox=size>=300?3:2, nTower=size>=300?2:0;
+  for(let i=0;i<nBox;i++){ const p=placeBuilding(); buildings.push({cx:p.cx,cz:p.cz,w:18,d:14,h:9,color:0x4a5568,tower:false}); }
+  for(let i=0;i<nTower;i++){ const p=placeBuilding(); buildings.push({cx:p.cx,cz:p.cz,w:8,d:8,h:16,color:0x556070,tower:true}); }
   return {boxes,buildings};
 }
 // 建筑内全部实体块（与前端完全一致，联机两边碰撞一致）
@@ -111,6 +115,27 @@ function buildingSpec(bd){
   for(let i=1;i<=N;i++) box(x0-(i-1)*stepD-stepD/2, z0, stairW, stepD, 6.5+(i-1)*stepH, stepH);
   return out;
 }
+// 【V3.0 新建筑】高塔：8x8、高16m，折返楼梯登顶（与前端 towerSpec 完全一致）
+function towerSpec(bd){
+  const {cx,cz,w,d,h}=bd; const W2=w/2,D2=d/2;
+  const out=[]; const box=(x,z,w2,d2,y2,h2)=>out.push({x,z,w:w2,d:d2,y:y2,h:h2});
+  box(cx-3.75,cz-D2,0.5,1,0,h);
+  box(cx+1.75,cz-D2,3.5,1,0,h);
+  box(cx-2.0,cz-D2,3.0,1,4.5,h-4.5);
+  box(cx,cz+D2,w,1,0,h);
+  box(cx-W2,cz,1,d,0,h);
+  box(cx+W2,cz,1,d,0,h);
+  const zF=cz-1.8,zB=cz+1.8,sw=2.4,sd=0.85;
+  const flight=(z0,dir,y0)=>{ for(let i=1;i<=8;i++){ const x=cx+dir*(-2.8+(i-1)*sd+sd/2); box(x,z0,sd,sw,y0+(i-1)*0.5,0.5); } };
+  flight(zF,1,0);    box(cx+3.0,cz,1.4,6.6,3.5,0.5);
+  flight(zB,-1,4);   box(cx-3.0,cz,1.4,6.6,7.5,0.5);
+  flight(zF,1,8);    box(cx+3.0,cz,1.4,6.6,11.5,0.5);
+  flight(zB,-1,12);
+  box(cx,cz,w-1,d-1,16,0.5);
+  box(cx,cz-D2+0.4,w-1.2,0.6,16.5,1.2); box(cx,cz+D2-0.4,w-1.2,0.6,16.5,1.2);
+  box(cx-W2+0.4,cz,0.6,d-1.2,16.5,1.2); box(cx+W2-0.4,cz,0.6,d-1.2,16.5,1.2);
+  return out;
+}
 // 由种子生成全部障碍的 x/z AABB，服务器用来给物品找合法位置
 function buildMapAABBs(seed, size){
   const spec=mapGenSpec(seed, size);
@@ -120,12 +145,13 @@ function buildMapAABBs(seed, size){
   push(0,-half, size, 20, 0, 6); push(0, half, size, 20, 0, 6);
   push(-half,0, 20, size, 0, 6); push( half,0, 20, size, 0, 6);
   for(const b of spec.boxes){
-    if(b.type==='cyl') push(b.x,b.z, b.r*2, b.r*2, 0, b.h);
+    if(b.type==='cyl'||b.type==='tetra') push(b.x,b.z, b.r*2, b.r*2, 0, b.h);
     else push(b.x,b.z, b.w, b.d, 0, b.h);
   }
   const inner=[];
   for(const bd of spec.buildings){
-    for(const s of buildingSpec(bd)) push(s.x,s.z,s.w,s.d, s.y, s.h);
+    const sp=bd.tower?towerSpec(bd):buildingSpec(bd);
+    for(const s of sp) push(s.x,s.z,s.w,s.d, s.y, s.h);
     inner.push({min:{x:bd.cx-bd.w/2+1,z:bd.cz-bd.d/2+1},max:{x:bd.cx+bd.w/2-1,z:bd.cz+bd.d/2-1}});
   }
   return {obs,inner};
@@ -254,10 +280,11 @@ wss.on('connection', (ws) => {
         if (!roomSet) {
           // 【新增·合作模式】创建房间：合作房=双人打怪(大图400)，对战房=双人对战(小图220)
           const isCoop = m.coop === true;
-          const roomSize = isCoop ? 400 : (room === 'default' ? 400 : 150); // 【对战更小】双人对战房地图 150
+          const roomSize = isCoop ? 600 : (room === 'default' ? 600 : 150); // 【V3.0】合作/默认 600，双人对战房 150
           roomSet = { set: new Set(), seed: (Math.random() * 1e9) | 0, items: new Map(), itemSeq: 1, obs: null, inner: null,
                       coop: isCoop, size: roomSize, monsters: isCoop || (room !== 'default'), // 【对战刷怪】对战房也有怪物（开局6只越刷越快）
                       password: pwd || null, // 【V2.0 房间密码】创建房间时保存密码（不填则为无密码房）
+                      kills: {}, scoreLimit: 30, finished: false, // 【V3.0 团队死斗】击杀计分，先到30杀获胜
                       coopEnemies: new Map(), coopBullets: [], enemySeq: 0, ballSeq: 0, spawnT: 8, spawnGap: 8 }; // 【持续刷怪】开局8秒后自动补怪，间隔越刷越短 // 【合作模式】服务器托管的怪物/红球
           const mm = buildMapAABBs(roomSet.seed, roomSet.size);
           roomSet.obs = mm.obs; roomSet.inner = mm.inner;
@@ -324,6 +351,15 @@ wss.on('connection', (ws) => {
         // 【新增·房间系统】击杀者必须在同一房间
         if (killer && killer.room === c.room && killer.ws.readyState === 1) {
           killer.ws.send(JSON.stringify({ type: 'kill', victim: id }));
+          // 【V3.0 团队死斗】对战房累计击杀，先到 30 杀一方获胜，广播结束
+          const r = rooms.get(c.room);
+          if (r && !r.coop && !r.finished) {
+            r.kills[m.killer] = (r.kills[m.killer] || 0) + 1;
+            if (r.kills[m.killer] >= r.scoreLimit) {
+              r.finished = true;
+              broadcastRoom({ type: 'tdm_end', winner: m.killer, winnerName: killer.name || '玩家' }, c.room);
+            }
+          }
         }
         break;
       }
@@ -358,6 +394,12 @@ wss.on('connection', (ws) => {
         const target = clients.get(m.target);
         if (!target || target.room !== c.room || target.ws.readyState !== 1) break;
         target.ws.send(JSON.stringify({ type: 'revived', hp: 10 }));
+        break;
+      }
+      case 'grenade_explode': {
+        // 【V3.0】玩家手雷爆炸：转发给同房间其他人播爆炸特效（伤害由各端 hit 消息结算）
+        if (!c.room) break;
+        broadcastRoom({ type: 'grenade_explode', x: m.x, y: m.y, z: m.z }, c.room, id);
         break;
       }
     }
