@@ -222,7 +222,8 @@ const server = http.createServer((req, res) => {
     return;
   }
   const type = MIME[path.extname(url).toLowerCase()] || 'application/octet-stream';
-  res.writeHead(200, { 'Content-Type': type });
+  // 【V3.0 缓存修复】no-store：WebView2/浏览器不缓存游戏页面，改版后必显示新内容
+  res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store' });
   fs.createReadStream(file).pipe(res);
 });
 
