@@ -1,0 +1,11 @@
+{
+  "appId": "com.yjc.fangkuaituji",
+  "appName": "方块突击",
+  "webDir": "web",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#1a2030",
+    "captureInput": true,
+    "webContentsDebuggingEnabled": true
+  }
+}
