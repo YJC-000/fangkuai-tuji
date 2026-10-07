@@ -59,9 +59,13 @@ h1{font-size:52px;letter-spacing:6px;background:linear-gradient(90deg,#4fc3f7,#8
 #vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 52%,rgba(255,0,0,.65) 100%);opacity:0;transition:opacity .3s}
 #lowhp{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,0,0,.5) 100%);display:none;animation:pulse 1.2s infinite}
 @keyframes pulse{0%,100%{opacity:.15}50%{opacity:.5}}
-#scope{position:fixed;inset:0;pointer-events:none;display:none;background:radial-gradient(circle,transparent 28%,#000 30%);z-index:15}
-#scope::before,#scope::after{content:'';position:absolute;background:rgba(255,255,255,.6)}
-#scope::before{width:1px;height:100%;left:50%}#scope::after{height:1px;width:100%;top:50%}
+#scope{position:fixed;inset:0;pointer-events:none;display:none;background:transparent;z-index:15}
+/* 【V3.0 瞄准镜改版】只显示中间一个黑色圆形镜片（半透明渐变圆），四周保持正常场景可见，不再整屏变黑 */
+#scope::before{content:'';position:absolute;left:50%;top:50%;width:38vmin;height:38vmin;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,rgba(0,0,0,.92) 0%,rgba(0,0,0,.92) 55%,rgba(0,0,0,.35) 82%,transparent 96%);box-shadow:0 0 0 2px rgba(0,0,0,.65)}
+#scope::after{content:'';position:absolute;left:50%;top:50%;width:44vmin;height:44vmin;transform:translate(-50%,-50%);border-radius:50%;border:1.5px solid rgba(255,255,255,.35);background:transparent}
+#scope i{position:absolute;background:rgba(255,255,255,.55);z-index:1}
+#scope i:nth-child(1){width:1px;height:14vmin;left:50%;top:50%;transform:translate(-50%,-50%)}
+#scope i:nth-child(2){height:1px;width:14vmin;left:50%;top:50%;transform:translate(-50%,-50%)}
 #minimap{position:fixed;bottom:80px;right:24px;width:150px;height:150px;border-radius:50%;border:2px solid #4a5a6a;background:rgba(0,0,0,.7);overflow:hidden;pointer-events:none;z-index:12}
 #minimap canvas{width:100%;height:100%;display:block}
 #weapon_hint{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);color:#ffd700;font-size:14px;background:rgba(0,0,0,.5);padding:4px 14px;border-radius:12px;border:1px solid #ffd70066;display:none;z-index:11}
@@ -175,7 +179,7 @@ body.touch-mode #weapon_hint{bottom:210px}
 
 <div id="hud" class="hidden">
   <div id="crosshair"></div><div id="hitmarker">✕</div>
-  <div id="scope"></div>
+  <div id="scope"><i></i><i></i></div>
   <div id="hpwrap"><div id="armorbar" style="width:160px;height:8px;background:#334155;border-radius:4px;margin:0 0 3px 0;display:none"><div id="armorfill" style="height:100%;width:0%;background:linear-gradient(90deg,#5c6bc0,#9fa8da);border-radius:4px"></div></div><div id="hpbar"><div id="hpfill"></div></div><div id="hptext">HP 100</div></div>
   <div id="ammo">30 <small>/ ∞</small></div>
   <div id="info"></div><div id="msg"></div><div id="vignette"></div><div id="lowhp"></div>
@@ -225,6 +229,14 @@ body.touch-mode #weapon_hint{bottom:210px}
     <input id="netroom" placeholder="房间号（如 8888，和朋友填一样的）" inputmode="numeric" maxlength="16">
     <!-- 【V2.0 房间密码】创建时作为房间密码；加入时需输入正确密码 -->
     <input id="netpass" type="password" placeholder="房间密码（可不填）" maxlength="16">
+    <!-- 【V3.0 直链进房】复制带房间号的直链，朋友打开网页就直接进入这个房间 -->
+    <div style="margin-top:10px"><button class="btn gray" id="netLinkBtn">🔗 复制房间直链（朋友打开直链直接进房）</button></div>
+    <!-- 【V3.0 局域网自动发现】扫描同网段 8080 端口，列出房间；无密码一键进入，有密码先输密码 -->
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap">
+      <input id="lanPrefix" placeholder="网段（如 192.168.1）" style="width:120px" maxlength="15">
+      <button class="btn gray" id="netScanBtn">🔍 搜索局域网房间</button>
+    </div>
+    <div id="lanResult" style="margin-top:8px;display:flex;flex-direction:column;gap:6px;align-items:center"></div>
   </div>
   <!-- 【V2.0 房间类型】创建房间前选择：对战 / 合作（加入时以房主设置的模式为准） -->
   <div class="mode-radio" id="netModeRadio">
@@ -313,6 +325,18 @@ body.touch-mode #weapon_hint{bottom:210px}
       <button class="btn" onclick="openCalib()">🎯 手柄校准（修复摇杆漂移 / 扳机不准）</button>
     </div>
     <div class="setting-hint">改手柄键位：先点按钮，再<b style="color:#ffd54f">按手柄上的键</b>（键盘按了不会生效）</div>
+  </div>
+  <!-- 【V3.0 天气选项】早晨 / 夜晚 / 永久早晨 / 永久夜晚（联机时同房间同步） -->
+  <div class="setting-group">
+    <h3>🌤️ 天气（联机时同房间一起变）</h3>
+    <div class="setting-row">
+      <button class="btn" id="wxMorning">🌅 早晨</button>
+      <button class="btn" id="wxNight">🌙 夜晚</button>
+      <button class="btn" id="wxMorningLock">☀️ 永久早晨</button>
+      <button class="btn" id="wxNightLock">🌑 永久夜晚</button>
+      <button class="btn gray" id="wxAuto">🔄 自动循环</button>
+    </div>
+    <div class="setting-hint">「早晨 / 夜晚」切过去后继续循环；「永久」则锁定时段不再变化</div>
   </div>
   <div><button class="btn" onclick="closeSettings()">✔ 完成并保存</button></div>
 </div>
@@ -535,6 +559,17 @@ function init(){
     document.getElementById('touch-controls').classList.add('active');
     document.body.classList.add('touch-mode');
   }
+  // 【V3.0 直链进房】打开带 ?room=房号&pwd=密码 的链接 → 自动填房间号并直接加入房间（无需再设置）
+  try{
+    const q=new URLSearchParams(location.search);
+    const r=(q.get('room')||'').trim();
+    if(r){
+      $('netroom').value=r;
+      $('netpass').value=(q.get('pwd')||'').trim();
+      showNetPanel();
+      setTimeout(()=>doConnect(false,false),400);
+    }
+  }catch(e){}
 }
 
 function addObstacle(x,y,z,w,h,d,color,shape){
@@ -1145,13 +1180,90 @@ function bindEvents(){
   document.addEventListener('click',()=>{if(IS_TOUCH)return; if(gameState==='playing'&&!paused&&!document.pointerLockElement)safeLock();}); // 【V3.0 修复】暂停中点按钮不再重新锁定鼠标（否则设置界面里鼠标消失）
   $('resumeBtn').onclick=()=>{ $('settings').classList.add('hidden'); if(IS_TOUCH){paused=false;firing=false;mouseFiring=false;pauseEl.classList.add('hidden');} else safeLock(); }; // 【V3.0 修复】继续前先关掉设置面板，防止残留
   $('quitBtn').onclick=()=>toMenu();
-  $('retryBtn').onclick=()=>startGame(mode);
+  $('retryBtn').onclick=()=>{
+    // 【V3.0 修复】联机模式（对战/合作）「再来一局」：清理联机状态并回到联机面板重新连接，不再走单机 startGame（否则点了没反应/状态错乱）
+    if(mode===4){
+      if(net){try{net.close();}catch(e){} net=null;}
+      for(const id in netPlayers){ scene.remove(netPlayers[id].group); delete netPlayers[id]; }
+      netCoop=false; netDead=false; coopDowned=false; netMonsters=false;
+      try{clearCoopLocal();}catch(e){}
+      toMenu();
+      showNetPanel();
+    } else startGame(mode);
+  };
   $('menuBtn').onclick=()=>toMenu();
+  // 【V3.0 天气选项】设置面板里的 4 种天气按钮（联机时广播给同房间）
+  $('wxMorning').onclick=()=>setWeather('morning');
+  $('wxNight').onclick=()=>setWeather('night');
+  $('wxMorningLock').onclick=()=>setWeather('morningLock');
+  $('wxNightLock').onclick=()=>setWeather('nightLock');
+  $('wxAuto').onclick=()=>setWeather('auto');
   // 【新增·房间系统】创建房间(create=true) / 加入房间(create=false)
   // 【V2.0 房间类型】创建房间时读取对战/合作单选；加入房间时以房主设置的模式为准
   $('netCreateBtn').onclick=()=>{ const coop=($('netModeCoop').classList.contains('on')); doConnect(true,coop); };
   $('netJoinBtn').onclick=()=>doConnect(false,false);
   $('netBackBtn').onclick=hideNetPanel;
+  // 【V3.0 直链进房】复制带房间号的直链：http(s)://当前地址?room=房号&pwd=密码
+  $('netLinkBtn').onclick=()=>{
+    const room=($('netroom').value||'').trim();
+    if(!room){ $('netStatus').textContent='⚠ 先填房间号，再复制直链'; return; }
+    const pwd=($('netpass').value||'').trim();
+    let base=location.href.split('?')[0].split('#')[0];
+    if(location.protocol==='file:') base='http://127.0.0.1:8080/';
+    const link=base+'?room='+encodeURIComponent(room)+(pwd?('&pwd='+encodeURIComponent(pwd)):'');
+    const done=()=>{ $('netStatus').textContent='✅ 已复制直链：'+link; navigator.clipboard&&navigator.clipboard.writeText(link).catch(()=>{}); };
+    if(navigator.clipboard&&window.isSecureContext){ navigator.clipboard.writeText(link).then(done).catch(()=>{ legacyCopy(link); done(); }); }
+    else{ legacyCopy(link); done(); }
+  };
+  // 【V3.0 局域网自动发现】扫描同网段 8080 端口的 /api/rooms，列出房间（并发 20 个，约 20 秒扫完 254 台）
+  $('netScanBtn').onclick=()=>{
+    // 网段默认值：从当前 hostname 推断（如 192.168.1.5 → 192.168.1）；file:// 打开时默认常见网段
+    let def='192.168.1';
+    try{
+      const hn=location.hostname||'';
+      if(/^\d+\.\d+\.\d+\.\d+$/.test(hn)) def=hn.split('.').slice(0,3).join('.');
+    }catch(e){}
+    const pre=($('lanPrefix').value||'').trim()||def;
+    $('lanPrefix').value=pre;
+    $('lanResult').innerHTML='<span style="color:#ffd54f;font-size:14px">⏳ 正在扫描 '+pre+'.1 ~ '+pre+'.254 的 8080 端口…（约 20 秒）</span>';
+    const found=[];
+    let done=0, started=0;
+    const tryHost=(x)=>{
+      started++;
+      fetch('http://'+pre+'.'+x+':8080/api/rooms',{signal:AbortSignal.timeout(1600)})
+        .then(r=>r.ok?r.json():null)
+        .then(j=>{ if(j&&Array.isArray(j.rooms)&&j.rooms.length) found.push({host:pre+'.'+x,rooms:j.rooms}); })
+        .catch(()=>{})
+        .finally(()=>{ done++; if(done>=started&&started>=254) renderLanRooms(found,pre); });
+    };
+    for(let x=1;x<=254;x++) tryHost(x);
+  };
+  // 渲染扫描结果：无密码直接进，有密码先输入
+  function renderLanRooms(found,pre){
+    const box=$('lanResult');
+    if(!found.length){ box.innerHTML='<span style="color:#ff9d9d;font-size:14px">未发现房间：请确认房主已启动服务器且在同一局域网，网段是否正确</span>'; return; }
+    let html='<span style="color:#9be89b;font-size:14px">✅ 发现 '+found.length+' 台主机有房间：</span>';
+    for(const f of found){
+      for(const rm of f.rooms){
+        html+='<button class="btn" style="font-size:13px;padding:6px 12px" data-host="'+f.host+'" data-room="'+rm.room+'" data-pwd="'+(rm.hasPwd?'1':'0')+'">'+f.host+' · 房号 '+rm.room+(rm.coop?' 🤝':rm.size<=150?' ⚔️':'')+' · '+rm.count+'人'+(rm.hasPwd?' 🔒':' ✔无密码')+'</button>';
+      }
+    }
+    box.innerHTML=html;
+    box.querySelectorAll('button').forEach(b=>{
+      b.onclick=()=>{
+        $('netroom').value=b.dataset.room;
+        if(b.dataset.pwd==='1'){
+          const p=prompt('房间「'+b.dataset.room+'」需要密码，请输入：');
+          if(p===null)return;
+          $('netpass').value=p.trim();
+        } else $('netpass').value='';
+        const prev=$('netaddr').value;
+        const m=prev.match(/^(wss?:\/\/)[^:]+(:\d+)?/);
+        $('netaddr').value=(m?m[1]:'ws://')+b.dataset.host+':8080';
+        doConnect(false,false);
+      };
+    });
+  }
   // 【V2.0 房间类型】单选切换高亮
   $('netModePvp').addEventListener('click',()=>{ $('netModePvp').classList.add('on'); $('netModeCoop').classList.remove('on'); });
   $('netModeCoop').addEventListener('click',()=>{ $('netModeCoop').classList.add('on'); $('netModePvp').classList.remove('on'); });
@@ -1541,6 +1653,16 @@ const netHeadMat=new THREE.MeshStandardMaterial({color:0xe8edf3,roughness:.6});
 const netEyeMat=new THREE.MeshBasicMaterial({color:0x2266ff});
 const netGunMat=new THREE.MeshStandardMaterial({color:0x1f2630,roughness:.5,metalness:.6});
 function netSend(o){ if(net&&net.readyState===1) net.send(JSON.stringify(o)); }
+// 【V3.0 直链进房】非 https/localhost 环境（如局域网 http://192.168.x.x）剪贴板 API 不可用时的手动复制兜底
+function legacyCopy(t){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=t; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(e){}
+}
 function showNetPanel(){
   menuEl.classList.add('hidden');
   netPanelEl.classList.remove('hidden');
@@ -1609,6 +1731,9 @@ function handleNetMsg(m){
   }else if(m.type==='notice'){
     // 【新增·房间系统】有人加入/离开房间的页面文字通知
     showMsg('📢 '+m.text,2);
+  }else if(m.type==='weather'){
+    // 【V3.0 天气同步】同房间其他玩家切换天气（手机端也同步）：sync=true 不再回传
+    setWeather(m.weather,true);
   }else if(m.type==='join'){
     if(m.id!==netId) addNetPlayer(m);
   }else if(m.type==='leave'){
@@ -2258,8 +2383,23 @@ function updateExplosions(dt){
 
 // ================= 【V3.0 昼夜循环】120 秒一天：白天→黄昏→夜晚→黎明 =================
 const DAY_CYCLE=120;
+let weatherMode='auto'; // 【V3.0 天气选项】auto=自动循环 / morning=早晨 / night=夜晚 / morningLock=永久早晨 / nightLock=永久夜晚
+function setWeather(w,sync){
+  // 【V3.0 天气选项】早晨/夜晚=立即切到该时段并继续自动循环；永久早晨/永久夜晚=锁定该时段不再循环
+  if(w==='morning'){ weatherMode='auto'; dayT=0; }
+  else if(w==='night'){ weatherMode='auto'; dayT=DAY_CYCLE*0.5; }
+  else if(w==='morningLock'){ weatherMode='morningLock'; dayT=0; }
+  else if(w==='nightLock'){ weatherMode='nightLock'; dayT=DAY_CYCLE*0.5; }
+  else { weatherMode='auto'; dayT=0; }
+  // 【V3.0 天气同步】联机时广播给同房间其他人（手机端也能同步天气）；sync=true 表示是收到别人广播，不再回传
+  if(!sync&&net&&net.readyState===1) netSend({type:'weather',weather:w});
+  if(!sync&&w&&gameState==='playing') showMsg('☀️/🌙 天气已切换：'+({morning:'早晨',night:'夜晚',morningLock:'永久早晨',nightLock:'永久夜晚'}[w]||'自动循环'),1.6);
+}
 function updateDayNight(dt){
-  dayT+=dt;
+  // 【V3.0 天气选项】永久早晨/永久夜晚锁定时段；其余照常循环
+  if(weatherMode==='morningLock')dayT=0;
+  else if(weatherMode==='nightLock')dayT=DAY_CYCLE*0.5;
+  else dayT+=dt;
   const t=(dayT%DAY_CYCLE)/DAY_CYCLE; // 0..1
   // 关键帧：白天 / 黄昏 / 夜晚 / 黎明 / 回到白天
   const keys=[
