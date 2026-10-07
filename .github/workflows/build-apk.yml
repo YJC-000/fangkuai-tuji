@@ -1,6 +1,6 @@
 name: Build APK
 
-# 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把网页游戏打包成 APK
+# 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把 android/web 里的网页游戏打包成 APK
 on:
   workflow_dispatch:
   push:
@@ -40,16 +40,23 @@ jobs:
           cd android
           npm install
           npx cap add android
+          echo "===== 诊断：android 目录结构 ====="
+          find . -name AndroidManifest.xml -path '*/main/*' | head -5
+          ls -la android/app/src/main/ 2>/dev/null || ls -la android/android/app/src/main/ 2>/dev/null || echo "未找到 manifest 目录"
 
       - name: 允许 HTTP 明文流量（连局域网 ws:// 服务器必需）
         run: |
-          sed -i 's/<application /<application android:usesCleartextTraffic="true" /' android/android/app/src/main/AndroidManifest.xml
-          grep -o 'usesCleartextTraffic="true"' android/android/app/src/main/AndroidManifest.xml
+          MANIFEST=$(find . -name AndroidManifest.xml -path '*/main/*' | head -1)
+          echo "MANIFEST=$MANIFEST"
+          test -n "$MANIFEST"
+          sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
+          grep -o 'usesCleartextTraffic="true"' "$MANIFEST"
 
       - name: 应用名改为 方块突击
         run: |
-          sed -i 's/android:label="[^"]*"/android:label="方块突击"/' android/android/app/src/main/AndroidManifest.xml
-          grep -o 'android:label="方块突击"' android/android/app/src/main/AndroidManifest.xml
+          MANIFEST=$(find . -name AndroidManifest.xml -path '*/main/*' | head -1)
+          sed -i 's/android:label="[^"]*"/android:label="方块突击"/' "$MANIFEST"
+          grep -o 'android:label="方块突击"' "$MANIFEST"
 
       - name: 同步并构建 Debug APK
         run: |
