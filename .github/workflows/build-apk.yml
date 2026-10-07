@@ -1,7 +1,7 @@
 name: Build APK
 
 # 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把网页游戏打包成 APK
-# v3 版：平台工程 android/android/ 已入库，直接 Gradle 构建（不再执行不可靠的 npx cap add）
+# v3.1 版：修复 sed 匹配（AndroidManifest 中 <application 后是换行，改为前缀匹配）
 on:
   workflow_dispatch:
   push:
@@ -53,7 +53,7 @@ jobs:
       - name: 允许 HTTP 明文流量（连局域网 ws:// 服务器必需）
         run: |
           MANIFEST=android/android/app/src/main/AndroidManifest.xml
-          sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST"
           grep -o 'usesCleartextTraffic="true"' "$MANIFEST"
 
       - name: 构建 Debug APK
