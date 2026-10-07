@@ -1,0 +1,66 @@
+name: Build APK
+
+# 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把网页游戏打包成 APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'android/**'
+      - '.github/workflows/build-apk.yml'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 拉取代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装 Java 17（Android 构建需要）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: 生成 web 目录（从仓库根目录复制游戏文件，不重复提交大文件）
+        run: |
+          mkdir -p android/web
+          cp 枪战.HTML android/web/index.html
+          cp three.min.js android/web/three.min.js
+          cp qrcode.min.js android/web/qrcode.min.js
+          ls -la android/web
+
+      - name: 安装 Capacitor
+        run: |
+          cd android
+          npm install
+          npx cap add android
+
+      - name: 允许 HTTP 明文流量（连局域网 ws:// 服务器必需）
+        run: |
+          sed -i 's/<application /<application android:usesCleartextTraffic="true" /' android/android/app/src/main/AndroidManifest.xml
+          grep -o 'usesCleartextTraffic="true"' android/android/app/src/main/AndroidManifest.xml
+
+      - name: 应用名改为 方块突击
+        run: |
+          sed -i 's/android:label="[^"]*"/android:label="方块突击"/' android/android/app/src/main/AndroidManifest.xml
+          grep -o 'android:label="方块突击"' android/android/app/src/main/AndroidManifest.xml
+
+      - name: 同步并构建 Debug APK
+        run: |
+          cd android
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: 上传 APK 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 方块突击-APK
+          path: android/android/app/build/outputs/apk/debug/*.apk
