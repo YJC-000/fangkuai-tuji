@@ -212,7 +212,7 @@ body.touch-mode #weapon_hint{bottom:210px}
     <div class="mode-card" onclick="showNetPanel()"><h2>🌐 联机模式</h2><p>和朋友同图对战（先到 30 杀获胜），或创建「合作房」一起打怪物！</p></div>
   </div>
   <div style="margin-top:14px"><button class="btn" onclick="openSettings()">⚙️ 游戏设置（改键 / 灵敏度 / 手机按键）</button></div>
-  <div class="help"><b>W A S D</b> 移动 <b>空格</b> 跳跃 <b>左键</b> 射击 <b>右键</b> 瞄准 <b>R</b> 换弹 <b>1-4</b> 切枪 <b>5</b> 手雷（长按左键描轨迹投掷）<b>双击W</b> 疾跑 <b>Esc</b> 暂停 · 全部键位可在「游戏设置」里改，也支持 <b>Xbox / PS 手柄</b></div>
+  <div class="help"><b>W A S D</b> 移动 <b>空格</b> 跳跃 <b>左键</b> 射击 <b>右键</b> 瞄准 <b>R</b> 换弹 <b>1-4</b> 切枪 <b>5</b> 手雷（长按右键描轨迹投掷）<b>双击W</b> 疾跑 <b>Esc</b> 暂停 · 全部键位可在「游戏设置」里改，也支持 <b>Xbox / PS 手柄</b></div>
 </div>
 
 <div id="netpanel" class="overlay hidden">
@@ -433,7 +433,7 @@ const WEAPONS = {
   smg: { name:'MP5 冲锋枪', icon:'💨', type:'smg', damage:14, headMul:1.8, rpm:900, mag:40, reserve:160, reload:2.0, recoilP:0.016, recoilY:0.010, spread:0.026, adsFov:45, range:60, auto:true },
   // ===== 【V3.0 新武器】霰弹枪：一枪喷出 8 颗弹丸，近距离毁灭性，远距离乏力 =====
   shotgun: { name:'M870 霰弹枪', icon:'💥', type:'shotgun', damage:13, headMul:1.4, rpm:70, mag:6, reserve:24, reload:0.6, reloadOne:true, recoilP:0.10, recoilY:0.05, spread:0.085, pellets:8, adsFov:55, range:38, auto:false },
-  // ===== 【V3.0 新武器】手雷：5 号武器，长按左键描轨迹投掷（和平精英式） =====
+  // ===== 【V3.0 新武器】手雷：5 号武器，长按右键描轨迹投掷（和平精英式） =====
   grenade: { name:'手雷', icon:'💣', type:'grenade', damage:120, headMul:1, rpm:1, mag:1, reserve:0, reload:0, recoilP:0, recoilY:0, spread:0, adsFov:75, range:0, auto:false },
 };
 let currentWeaponId='ak47', currentWeapon=WEAPONS.ak47;
@@ -447,9 +447,10 @@ const GRENADE_RADIUS=6;    // 爆炸半径
 const GRENADE_FUSE=2.5;    // 引信秒数（G 键快速扔）
 const GRENADE_FUSE_ARM=4.0; // 【V3.0 投掷系统】5 号武器长按瞄准时的倒计时秒数（和平精英式）
 const grenadeObjs=[];      // 场上已投掷、正在飞行/等待爆炸的手雷
-// 【V3.0 投掷系统】手雷武器：长按左键进入瞄准（描轨迹+倒计时），松开按轨迹扔出
+// 【V3.0 投掷系统】手雷武器：长按右键进入瞄准（描轨迹+倒计时），松开按轨迹扔出
 let grenadeAim=false, grenadeAimT=0;   // 是否在投掷瞄准 / 剩余引信
-let grenadePathLine=null;              // 投掷轨迹预览线
+let grenadePathLine=null;              // 投掷轨迹预览线（红色半透明）
+let grenadeTargetDot=null;             // 轨迹落点半圆小球标记
 let grenadeHeld=false;                 // 是否按着投掷键
 let armor=0;               // 【V3.0 新道具】护甲值（0-100），受击先扣护甲，靠拾取护甲片补充
 const ARMOR_ABSORB=0.6;    // 护甲吸收 60% 伤害（其余仍扣血）
@@ -1072,7 +1073,7 @@ function bindEvents(){
     if(e.code===settings.keyBinds.wpn2){switchWeapon('awp'); e.preventDefault();}
     if(e.code===settings.keyBinds.wpn3){switchWeapon('smg'); e.preventDefault();}
     if(e.code===settings.keyBinds.wpn4){switchWeapon('shotgun'); e.preventDefault();}
-    // 【V3.0 投掷系统】按 5 切换到手雷武器（长按左键描轨迹投掷）
+    // 【V3.0 投掷系统】按 5 切换到手雷武器（长按右键描轨迹投掷）
     if(e.code===settings.keyBinds.wpn5){switchWeapon('grenade'); e.preventDefault();}
     // 【V3.0】G 键投掷手雷
     if(e.code===settings.keyBinds.grenade){throwGrenade(); e.preventDefault();}
@@ -1099,14 +1100,16 @@ function bindEvents(){
   document.addEventListener('mousedown', e=>{
     if(gameState==='playing'&&!paused&&document.pointerLockElement){
       const mc='Mouse'+e.button;
-      // 【V3.0 投掷系统】手雷武器：按住左键进入投掷瞄准（描轨迹+倒计时），松开扔出
+      // 【V3.0 投掷系统】手雷武器：长按右键(Mouse2)进入投掷瞄准（描轨迹+倒计时），松开扔出
+      if(currentWeaponType==='grenade'&&mc==='Mouse2'){
+        if(!grenadeAim){
+          if(grenades<=0){showMsg('没有手雷了！捡绿色手雷补给',1.2);sfx.empty();}
+          else{ grenadeAim=true; grenadeAimT=GRENADE_FUSE_ARM; grenadeHeld=true; showGrenadePath(); }
+        }
+        return; // 手雷模式下右键专用于投掷瞄准，不再开镜
+      }
       if(settings.keyBinds.fire===mc){
-        if(currentWeaponType==='grenade'){
-          if(!grenadeAim){
-            if(grenades<=0){showMsg('没有手雷了！捡绿色手雷补给',1.2);sfx.empty();}
-            else{ grenadeAim=true; grenadeAimT=GRENADE_FUSE_ARM; grenadeHeld=true; showGrenadePath(); }
-          }
-        } else mouseFiring=true;
+        if(currentWeaponType!=='grenade') mouseFiring=true; // 手雷模式下左键不消耗、不射击
       }
       // 【V2.0 全键位】按用户设置的射击/瞄准键识别鼠标按钮
       if(settings.keyBinds.aim===mc){
@@ -1119,9 +1122,12 @@ function bindEvents(){
   });
   document.addEventListener('mouseup', e=>{
     const mc='Mouse'+e.button;
-    // 【V3.0 投掷系统】松开左键：把手雷按当前轨迹扔出去
+    // 【V3.0 投掷系统】松开右键：把手雷按当前轨迹扔出去
+    if(currentWeaponType==='grenade'&&mc==='Mouse2'){
+      if(grenadeAim) throwGrenadeAimed();
+      return;
+    }
     if(settings.keyBinds.fire===mc){
-      if(currentWeaponType==='grenade'&&grenadeAim) throwGrenadeAimed();
       mouseFiring=false;
     }
     if(settings.keyBinds.aim===mc){ ads=false; targetFov=75; $('scope').style.display='none'; $('crosshair').style.display='block'; }
@@ -2022,7 +2028,7 @@ const _v2=new THREE.Vector2(0,0);
 const tracerMat=new THREE.LineBasicMaterial({color:0xffe08a,transparent:true,opacity:0.9});
 const _mw=new THREE.Vector3();
 function shoot(){
-  if(currentWeaponType==='grenade')return; // 【V3.0 投掷系统】手雷武器不开枪（长按左键是投掷瞄准）
+  if(currentWeaponType==='grenade')return; // 【V3.0 投掷系统】手雷武器不开枪（长按右键是投掷瞄准）
   if(netDead)return;
   if(netCoop&&coopDowned)return; // 【合作模式】倒地期间不能开火
   if(reloading)return;
@@ -2102,28 +2108,46 @@ function showGrenadePath(){
   if(!grenadePathLine){
     grenadePathLine=new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),
-      new THREE.LineBasicMaterial({color:0x66bb6a,transparent:true,opacity:0.95})
+      new THREE.LineBasicMaterial({color:0xff4444,transparent:true,opacity:0.45}) // 【V3.0】红色半透明抛物线
     );
     scene.add(grenadePathLine);
   }
+  if(!grenadeTargetDot){ // 【V3.0】落点半圆小球（上半球，红色半透明，扣在落点地面上）
+    grenadeTargetDot=new THREE.Mesh(
+      new THREE.SphereGeometry(0.09,16,8,0,Math.PI*2,0,Math.PI/2),
+      new THREE.MeshBasicMaterial({color:0xff4444,transparent:true,opacity:0.5})
+    );
+    scene.add(grenadeTargetDot);
+  }
   grenadePathLine.visible=true;
+  grenadeTargetDot.visible=true;
   updateGrenadePath();
 }
-function hideGrenadePath(){ if(grenadePathLine)grenadePathLine.visible=false; }
+function hideGrenadePath(){ if(grenadePathLine)grenadePathLine.visible=false; if(grenadeTargetDot)grenadeTargetDot.visible=false; }
 function updateGrenadePath(){
   if(!grenadePathLine)return;
   const pts=[];
-  const origin=camera.position.clone();
+  // 【V3.0】抛物线从右手边发出：起点=视角位置+右偏0.35+前伸0.25，略低于眼睛（持枪高度）
+  const rightVec=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0);
   const dir=camera.getWorldDirection(new THREE.Vector3());
+  const origin=camera.position.clone().addScaledVector(rightVec,0.35).addScaledVector(dir,0.25);
+  origin.y-=0.10;
   const vx=dir.x*16, vy=dir.y*16+4.5, vz=dir.z*16; // 与真实投掷同参数
+  let lastY=0.12;
   for(let i=0;i<26;i++){
     const t=i*0.085;
     const x=origin.x+vx*t, y=origin.y+vy*t-11*t*t, z=origin.z+vz*t;
-    if(y<0.12)break;
+    if(y<0.12){ lastY=0.12; break; }
+    lastY=y;
     pts.push(new THREE.Vector3(x,y,z));
   }
   if(pts.length<2)pts.push(origin.clone().addScaledVector(dir,2));
   grenadePathLine.geometry.setFromPoints(pts);
+  // 落点半圆小球放在轨迹终点（贴地）
+  if(grenadeTargetDot){
+    const last=pts[pts.length-1];
+    grenadeTargetDot.position.set(last.x,0.05,last.z);
+  }
 }
 // 长按结束（松开左键 / 倒计时归零）：按当前瞄准方向真实扔出手雷，引信=剩余倒计时
 function throwGrenadeAimed(){
@@ -2135,8 +2159,11 @@ function throwGrenadeAimed(){
   const body=new THREE.Mesh(new THREE.SphereGeometry(0.11,10,8),new THREE.MeshStandardMaterial({color:0x2e7d32,roughness:.5}));
   const cap=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.06,8),new THREE.MeshStandardMaterial({color:0x222222}));
   cap.position.y=0.12; g.add(body,cap);
+  // 【V3.0】瞄准投掷：手雷从右手边抛出（与轨迹预览起点一致），再按视线方向前推
+  const _rightV=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0);
   camera.getWorldPosition(g.position);
-  g.position.addScaledVector(camera.getWorldDirection(_gDir),0.7);
+  g.position.addScaledVector(_rightV,0.35).addScaledVector(camera.getWorldDirection(_gDir),0.95);
+  g.position.y-=0.10;
   scene.add(g);
   grenadeObjs.push({mesh:g, vx:_gDir.x*16, vy:_gDir.y*16+4.5, vz:_gDir.z*16, fuse:Math.max(grenadeAimT,0.25)});
   sfx.throwGrenade();
