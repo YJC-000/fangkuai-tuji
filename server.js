@@ -214,6 +214,16 @@ const MIME = {
 const server = http.createServer((req, res) => {
   let url;
   try { url = decodeURIComponent(req.url.split('?')[0]); } catch (e) { url = '/'; }
+  // 【V3.0 局域网自动发现】/api/rooms 返回房间列表（房号/人数/是否有密码），供手机端搜索局域网房间
+  if (url === '/api/rooms') {
+    const list = [];
+    for (const [room, r] of rooms) {
+      list.push({ room, count: r.set.size, hasPwd: !!r.password, coop: !!r.coop, size: r.size });
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ rooms: list }));
+    return;
+  }
   if (url === '/') url = '/枪战.HTML';
   const file = path.join(__dirname, url);
   if (!file.startsWith(__dirname) || !fs.existsSync(file)) {
@@ -401,6 +411,13 @@ wss.on('connection', (ws) => {
         // 【V3.0】玩家手雷爆炸：转发给同房间其他人播爆炸特效（伤害由各端 hit 消息结算）
         if (!c.room) break;
         broadcastRoom({ type: 'grenade_explode', x: m.x, y: m.y, z: m.z }, c.room, id);
+        break;
+      }
+      case 'weather': {
+        // 【V3.0 天气同步】某玩家切换天气：广播给同房间其他人（手机端也能同步天气）
+        if (!c.room) break;
+        if (typeof m.weather !== 'string') break;
+        broadcastRoom({ type: 'weather', weather: m.weather }, c.room, id);
         break;
       }
     }
