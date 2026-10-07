@@ -1,6 +1,6 @@
 name: Build APK
 
-# 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把 android/web 里的网页游戏打包成 APK
+# 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把网页游戏打包成 APK
 on:
   workflow_dispatch:
   push:
@@ -19,13 +19,14 @@ jobs:
       - name: 安装 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: 安装 Java 17（Android 构建需要）
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
+
       - name: 生成 web 目录（从仓库根目录复制游戏文件，不重复提交大文件）
         run: |
           mkdir -p android/web
@@ -34,36 +35,41 @@ jobs:
           cp qrcode.min.js android/web/qrcode.min.js
           ls -la android/web
 
-      - name: 安装 Capacitor
+      - name: 安装 Capacitor（npm 重试+严格失败检查）
         run: |
+          set -e
           cd android
-          npm install
+          for i in 1 2 3; do
+            npm install --no-audit --no-fund && break || { echo "npm 第 $i 次失败，10 秒后重试"; sleep 10; }
+          done
           npx cap add android
-          echo "===== 诊断：android 目录结构 ====="
-          find . -name AndroidManifest.xml -path '*/main/*' | head -5
-          ls -la android/app/src/main/ 2>/dev/null || ls -la android/android/app/src/main/ 2>/dev/null || echo "未找到 manifest 目录"
+          echo "===== 诊断：平台目录 ======"
+          ls android/app/src/main/ 2>/dev/null || (echo '平台目录未生成！' && exit 1)
+          test -f android/app/src/main/AndroidManifest.xml
 
       - name: 允许 HTTP 明文流量（连局域网 ws:// 服务器必需）
         run: |
-          MANIFEST=$(find . -name AndroidManifest.xml -path '*/main/*' | head -1)
-          echo "MANIFEST=$MANIFEST"
-          test -n "$MANIFEST"
+          set -e
+          MANIFEST=android/android/app/src/main/AndroidManifest.xml
+          test -f "$MANIFEST"
           sed -i 's/<application /<application android:usesCleartextTraffic="true" /' "$MANIFEST"
           grep -o 'usesCleartextTraffic="true"' "$MANIFEST"
 
       - name: 应用名改为 方块突击
         run: |
-          MANIFEST=$(find . -name AndroidManifest.xml -path '*/main/*' | head -1)
+          set -e
+          MANIFEST=android/android/app/src/main/AndroidManifest.xml
           sed -i 's/android:label="[^"]*"/android:label="方块突击"/' "$MANIFEST"
           grep -o 'android:label="方块突击"' "$MANIFEST"
 
       - name: 同步并构建 Debug APK
         run: |
+          set -e
           cd android
           npx cap sync android
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --no-daemon
 
       - name: 上传 APK 产物
         uses: actions/upload-artifact@v4
