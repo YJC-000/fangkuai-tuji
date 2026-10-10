@@ -167,6 +167,13 @@ body.touch-mode #weapon_hint{bottom:210px}
 #netStatus{white-space:pre-line;line-height:1.8}
 /* 手柄状态提示 */
 .gp-hint{color:#7ce38b;font-size:13px;margin:2px 0 8px}
+/* ===== V3.0.2 手机强制横屏：竖屏时全屏提示旋转（仅触屏设备） ===== */
+#rotate-hint{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:#0a0e15;color:#e6edf3;text-align:center;font-size:22px;line-height:1.8}
+#rotate-hint .rh-icon{font-size:60px;display:block;margin-bottom:12px}
+#rotate-hint small{color:#9fb0c3;font-size:14px}
+@media (orientation: portrait){
+  body.touch-mode #rotate-hint{display:flex}
+}
 </style>
 </head>
 <body>
@@ -180,6 +187,7 @@ body.touch-mode #weapon_hint{bottom:210px}
   <div id="weapon_hint">🔫 AK-47</div>
   <div id="grenadeTimer" style="display:none;position:absolute;left:50%;top:36%;transform:translateX(-50%);font-size:46px;font-weight:bold;color:#ffd54f;text-shadow:0 0 20px rgba(255,170,0,.85),0 2px 6px rgba(0,0,0,.8);font-family:Consolas,'Courier New',monospace;pointer-events:none"></div>
 </div>
+<div id="rotate-hint"><div><span class="rh-icon">📱</span>请将手机横屏<br>旋转设备后自动进入游戏<small><br><br>竖屏状态下无法操作</small></div></div>
 <div id="touch-controls">
   <div id="view-area"></div>
   <div id="joystick-area">
@@ -912,15 +920,41 @@ function closeSettings(){
     else $('pause').classList.remove('hidden'); // 电脑回到暂停界面，点“继续”重新锁定鼠标
   } else $('menu').classList.remove('hidden');
 }
+// 【V3.0.2 手机强制横屏】进入游戏时请求全屏并锁定横屏（须由用户手势触发；全局定义，方便调试与复用）
+function enterFullscreenLandscape(){
+  const el=document.documentElement;
+  const fs=el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
+  if(fs){ try{ const p=fs.call(el); if(p&&p.catch)p.catch(()=>{}); }catch(e){} }
+  try{
+    if(screen.orientation && screen.orientation.lock){
+      const p=screen.orientation.lock('landscape');
+      if(p&&p.catch)p.catch(()=>{});
+    }
+  }catch(e){}
+}
+if(IS_TOUCH){
+  // 首次触摸屏幕即尝试进入全屏横屏（仅触发一次，失败也不影响手动横屏）
+  const unlockOnce=()=>{ enterFullscreenLandscape(); };
+  document.addEventListener('pointerdown',unlockOnce,{once:true});
+  document.addEventListener('touchstart',unlockOnce,{once:true});
+}
 // 把保存的自定义布局应用到控件（位置用比例、大小用缩放，兼容不同分辨率与横竖屏）
+// 【V3.0.2 屏幕自适应】控件基准尺寸（用于判断是否出屏，自动收进屏幕内，小屏不重叠不丢失）
+const TOUCH_BASE_SIZE={'joystick-area':132,'fire-btn':98,'aim-btn':74,'jump-btn':78,'reload-btn':60,'weapon-btn':60,'pause-btn':44,'grenade-btn':70};
 function applyTouchLayout(){
   const vw=innerWidth,vh=innerHeight;
   for(const id of LAYOUT_IDS){
     const el=$(id); if(!el)continue; const L=settings.touchLayout[id];
     if(L){
-      el.style.left=(L.nx*vw)+'px'; el.style.top=(L.ny*vh)+'px';
+      let nx=L.nx, ny=L.ny, s=L.s;
+      // 防止控件被拖出/默认布局超出屏幕：按基准尺寸收进可视区
+      const base=TOUCH_BASE_SIZE[id]||90;
+      const maxX=1-(base*s)/vw, maxY=1-(base*s)/vh;
+      if(maxX<nx) nx=maxX; if(nx<0) nx=0;
+      if(maxY<ny) ny=maxY; if(ny<0) ny=0;
+      el.style.left=(nx*vw)+'px'; el.style.top=(ny*vh)+'px';
       el.style.right='auto'; el.style.bottom='auto';
-      el.style.transformOrigin='top left'; el.style.transform='scale('+L.s+')';
+      el.style.transformOrigin='top left'; el.style.transform='scale('+s+')';
     }else{
       el.style.left='';el.style.top='';el.style.right='';el.style.bottom='';el.style.transform='';el.style.transformOrigin='';
     }
@@ -1303,7 +1337,12 @@ function bindEvents(){
   const viewArea = document.getElementById('view-area');
   viewArea.addEventListener('touchstart', (e)=>{
     if(gameState!=='playing'||paused) return;
-    if(viewTouchId!==null) return; // 已有手指负责转视角，不被其他手指抢占
+    if(viewTouchId!==null){
+      // 【V3.0.2 修复视角锁死】旧手指已不在屏幕上（被系统打断/滑动到按钮上等）时自动释放，避免永远转不了视角
+      const alive=Array.from(e.touches).some(t=>t.identifier===viewTouchId);
+      if(alive) return;
+      viewTouchId=null;
+    }
     const touch = e.changedTouches[0];
     viewTouchId = touch.identifier;
     lastViewX = touch.clientX;
@@ -1321,7 +1360,8 @@ function bindEvents(){
     const dx = touch.clientX - lastViewX;
     const dy = touch.clientY - lastViewY;
     if(Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5){
-      const ts=TOUCH_BASE_SENS*settings.touchMul;
+      // 【V3.0.2 开镜精准】开镜（ads）时触屏灵敏度减半，方便微调瞄准
+      const ts=TOUCH_BASE_SENS*settings.touchMul*(ads?0.5:1);
       yaw -= dx * ts;
       pitch -= dy * ts;
       pitch = Math.max(-1.45, Math.min(1.45, pitch));
@@ -1337,6 +1377,12 @@ function bindEvents(){
       }
     }
   }, {passive:true});
+  // 【V3.0.2 修复视角锁死】touchcancel 同样释放视角手指（来电、系统手势打断等场景）
+  document.addEventListener('touchcancel', (e)=>{
+    for(let t of e.changedTouches){
+      if(t.identifier === viewTouchId){ viewTouchId = null; break; }
+    }
+  }, {passive:true});
   // 射击按钮（按住开火的同时，这根手指拖动也能转视角，方便边开枪边转身/压枪）
   let fireLookId=null, fireLookX=0, fireLookY=0;
   const fireBtnEl=document.getElementById('fire-btn');
@@ -1350,7 +1396,8 @@ function bindEvents(){
     if(!t)return;
     const dx=t.clientX-fireLookX, dy=t.clientY-fireLookY;
     if(Math.abs(dx)>0.5||Math.abs(dy)>0.5){
-      const fs=TOUCH_BASE_SENS*settings.touchMul;
+      // 【V3.0.2 开镜精准】开镜时按住开火键拖动视角同样减半灵敏度
+      const fs=TOUCH_BASE_SENS*settings.touchMul*(ads?0.5:1);
       yaw-=dx*fs; pitch-=dy*fs; pitch=Math.max(-1.45,Math.min(1.45,pitch));
     }
     fireLookX=t.clientX; fireLookY=t.clientY;
