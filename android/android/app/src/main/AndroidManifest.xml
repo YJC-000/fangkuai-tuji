@@ -5,6 +5,8 @@
 
     <!-- V3.0.2 手机横屏/瞄准/视角修复：触发 APK 重建 -->
 
+    <!-- V3.0.2b 二次触发：确保新 HTML 进入 APK -->
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
