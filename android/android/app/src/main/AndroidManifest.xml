@@ -13,6 +13,8 @@
 
     <!-- V3.0.5 手机端独立UI（菜单/联机/设置全屏滚动+操作栏固定底部+大按钮）：触发 APK 重建 -->
 
+    <!-- V3.0.5b 二次触发：确保 V3.0.5 手机独立 UI 进入 APK -->
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
