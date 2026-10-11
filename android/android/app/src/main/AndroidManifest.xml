@@ -7,6 +7,8 @@
 
     <!-- V3.0.2b 二次触发：确保新 HTML 进入 APK -->
 
+    <!-- V3.0.3 手机端五修复（inset兼容/手雷时序/视角触摸/按键布局/设置面板全屏）：触发 APK 重建 + 强制横屏硬锁 -->
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -20,7 +22,8 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
-            android:exported="true">
+            android:exported="true"
+            android:screenOrientation="landscape">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
