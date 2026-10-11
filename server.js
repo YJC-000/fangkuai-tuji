@@ -103,9 +103,9 @@ function buildingSpec(bd){
   box((platX0+platX1)/2, cz, platX1-platX0, d-2, 3, 0.5);
   box((platX0+platX1)/2, cz-5.5, platX1-platX0, 1, 6, 0.5); // 二层平台前段
   box((platX0+platX1)/2, cz+4.05, platX1-platX0, 3.9, 6, 0.5); // 二层平台后段
-  box(cx, cz-6.4, w, 1.2, 9, 1);  // 楼顶板后段（留出楼梯段3 通道）
-  box(cx, cz-0.925, w, 6.55, 9, 1); // 楼顶板前段左（给段3让出通道）
-  box(cx, cz+5.325, w, 3.35, 9, 1); // 楼顶板前段右
+  box(cx, cz-2.5, w, 9, 9, 1);  // 【V3.0.8】楼顶板主段（z cz-7~cz+2，原后段+前段左合并，无缝隙）
+  box(cx, cz+5.5, w, 3, 9, 1);  // 【V3.0.8】楼顶板东段（z cz+4~cz+7）
+  // 【V3.0.8】楼顶修复：z cz+2~cz+4 留 2m 开口给楼梯段3，7级台阶全部在开口内，不再与楼板交叉，爬楼不会被顶头/推回
   const stairW=1.6, stepH=0.5, stepD=1.3, N=7; // 【碰撞修复】7 级：楼梯顶与平台/楼顶顶面齐平
   let x0=cx-W2+1.2, z0=cz-D2+2;
   for(let i=1;i<=N;i++) box(x0+(i-1)*stepD+stepD/2, z0, stairW, stepD, (i-1)*stepH, stepH); // 【碰撞修复】独立0.5m台阶
@@ -220,7 +220,7 @@ const server = http.createServer((req, res) => {
     for (const [room, r] of rooms) {
       list.push({ room, count: r.set.size, hasPwd: !!r.password, coop: !!r.coop, size: r.size });
     }
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' }); // 【V3.0.8】加 CORS：手机/电脑跨网段扫描局域网房间不再被浏览器拦截
     res.end(JSON.stringify({ rooms: list }));
     return;
   }
