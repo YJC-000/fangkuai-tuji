@@ -1,7 +1,7 @@
 name: Build APK
 
 # 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把网页游戏打包成 APK
-# v3.1 版：修复 sed 匹配（AndroidManifest 中 <application 后是换行，改为前缀匹配）
+# v3.2 版：显式声明 contents: write 权限，让构建完成后能把 APK 推回仓库供直接下载
 on:
   workflow_dispatch:
   push:
@@ -9,6 +9,9 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/build-apk.yml'
+
+permissions:
+  contents: write
 
 jobs:
   build-apk:
