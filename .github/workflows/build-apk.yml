@@ -1,7 +1,7 @@
 name: Build APK
 
 # 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把网页游戏打包成 APK
-# v3.2 版：显式声明 contents: write 权限，让构建完成后能把 APK 推回仓库供直接下载
+# v3.3 版：构建时从 CDN 下载 peerjs.min.js，不需要仓库存大文件
 on:
   workflow_dispatch:
   push:
@@ -49,7 +49,7 @@ jobs:
           mkdir -p android/android/app/src/main/assets/public
           cp 枪战.HTML android/android/app/src/main/assets/public/index.html
           cp three.min.js android/android/app/src/main/assets/public/ 2>/dev/null || true
-          cp peerjs.min.js android/android/app/src/main/assets/public/ 2>/dev/null || true
+          curl -sL -o android/android/app/src/main/assets/public/peerjs.min.js https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js
           cp qrcode.min.js android/android/app/src/main/assets/public/ 2>/dev/null || true
           cp server.js android/android/app/src/main/assets/public/ 2>/dev/null || true
           ls -la android/android/app/src/main/assets/public
