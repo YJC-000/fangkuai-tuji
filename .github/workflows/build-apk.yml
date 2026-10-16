@@ -1,7 +1,7 @@
 name: Build APK
 
 # 【自动合成 APK】推送到 main 或手动触发后，GitHub 自动把网页游戏打包成 APK
-# v3.3 版：构建时从 CDN 下载 peerjs.min.js，不需要仓库存大文件
+# v3.4 版：从 CDN 拉取最新 枪战.HTML（V3.1.0 P2P 直连版）
 on:
   workflow_dispatch:
   push:
@@ -43,6 +43,11 @@ jobs:
           for i in 1 2 3; do
             npm install @capacitor/core@5 @capacitor/android@5 --no-audit --no-fund && break || { echo "npm 第 $i 次失败，10 秒后重试"; sleep 10; }
           done
+
+      - name: 下载最新 V3.1.0 游戏文件
+        run: |
+          curl -sL -o 枪战.HTML https://aka.doubaocdn.com/s/vfS7iIsNTo
+          ls -la 枪战.HTML
 
       - name: 拷贝游戏文件到 Web 资源目录
         run: |
