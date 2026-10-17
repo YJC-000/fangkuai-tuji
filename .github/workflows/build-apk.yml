@@ -1,6 +1,6 @@
 name: Build APK
 
-# V3.2.0: 引擎性能优化（移动端降分辨率/关抗锯齿/降阴影/敌人不投影）
+# V3.2.0: Kotlin 原生菜单 + Three.js 游戏 WebView + 性能优化
 on:
   workflow_dispatch:
   push:
@@ -60,7 +60,7 @@ jobs:
       - name: 允许 HTTP 明文流量
         run: |
           MANIFEST=android/android/app/src/main/AndroidManifest.xml
-          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST"
+          grep -q 'usesCleartextTraffic' "$MANIFEST" || sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST"
 
       - name: 构建 Debug APK
         run: |

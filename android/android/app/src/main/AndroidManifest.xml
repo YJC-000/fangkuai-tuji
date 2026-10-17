@@ -1,34 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- V3.0.1 瞄准镜黑框修复版 -->
-
-    <!-- V3.0.2 手机横屏/瞄准/视角修复：触发 APK 重建 -->
-
-    <!-- V3.0.2b 二次触发：确保新 HTML 进入 APK -->
-
-    <!-- V3.0.3 手机端五修复（inset兼容/手雷时序/视角触摸/按键布局/设置面板全屏）：触发 APK 重建 + 强制横屏硬锁 -->
-
-    <!-- V3.0.4 手机端HUD精简+手雷圆形倒计时/可调抛物线/加威力+性能优化：触发 APK 重建 -->
-
-    <!-- V3.0.5 手机端独立UI（菜单/联机/设置全屏滚动+操作栏固定底部+大按钮）：触发 APK 重建 -->
-
-    <!-- V3.0.5b 二次触发：确保 V3.0.5 手机独立 UI 进入 APK -->
-
-    <!-- V3.0.6 手机画质提升（抗锯齿/满分辨率/PCF阴影）+瞄准镜黑框更透+手机设置隐藏电脑组：触发 APK 重建 -->
+    <!-- V3.2.0 Kotlin 原生菜单 + Three.js 游戏 WebView -->
 
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme.NoActionBar">
 
+        <!-- 原生 Kotlin 菜单（启动页） -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
-            android:label="@string/title_activity_main"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar"
             android:launchMode="singleTask"
             android:exported="true"
             android:screenOrientation="landscape">
@@ -40,6 +27,14 @@
 
         </activity>
 
+        <!-- 游戏 WebView（Capacitor BridgeActivity） -->
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:name=".GameActivity"
+            android:label="@string/app_name"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:screenOrientation="landscape" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -50,8 +45,6 @@
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
     </application>
-
-    <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
