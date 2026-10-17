@@ -42,9 +42,9 @@ jobs:
             npm install @capacitor/core@5 @capacitor/android@5 --no-audit --no-fund && break || { echo "npm retry $i"; sleep 10; }
           done
 
-      - name: 下载最新 V3.2.0 游戏文件
+      - name: 下载最新 V3.3.0 游戏文件
         run: |
-          curl -sL -o 枪战.HTML https://aka.doubaocdn.com/s/l6iTCYDzVV
+          curl -sL -o 枪战.HTML https://aka.doubaocdn.com/s/dh24U6TcUv
           ls -la 枪战.HTML
 
       - name: 拷贝游戏文件
@@ -73,11 +73,11 @@ jobs:
       - name: Push APK
         run: |
           mkdir -p releases
-          cp android/android/app/build/outputs/apk/debug/app-debug.apk releases/fangkuai-tuji-v320.apk
+          cp android/android/app/build/outputs/apk/debug/app-debug.apk releases/fangkuai-tuji-v330.apk
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add releases/fangkuai-tuji-v320.apk
-          git commit -m "V3.2.0 APK auto push" || echo "no change"
+          git add releases/fangkuai-tuji-v330.apk
+          git commit -m "V3.3.0 APK auto push" || echo "no change"
           git push origin main
 
       - name: 失败时推送日志
