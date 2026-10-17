@@ -105,7 +105,7 @@ class MainActivity : AppCompatActivity() {
         })
 
         val cards = mutableListOf<View>()
-        fun mc(icon: String, name: String, desc: String, color: Int, mode: Int) {
+        fun mc(icon: String, name: String, desc: String, color: Int, mode: Int, isNet: Boolean = false) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
                 setPadding(dp(18), dp(18), dp(18), dp(18)); background = cardBg()
@@ -114,8 +114,12 @@ class MainActivity : AppCompatActivity() {
                 ).apply { setMargins(0, 0, 0, dp(12)) }
                 isClickable = true; elevation = dp(4).toFloat()
                 setOnClickListener {
-                    val i = Intent(this@MainActivity, GameActivity::class.java)
-                    i.putExtra("mode", mode); startActivity(i)
+                    if (isNet) {
+                        startActivity(Intent(this@MainActivity, NetActivity::class.java))
+                    } else {
+                        val i = Intent(this@MainActivity, GameActivity::class.java); i.putExtra("mode", mode); startActivity(i)
+                    }
+                    overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
                 }
             }
             card.addView(TextView(this).apply {
@@ -140,8 +144,9 @@ class MainActivity : AppCompatActivity() {
             ui.addView(card)
         }
         mc("⚔", "生存模式", "消灭敌人 · 存活到底", wave1, 1)
+        mc("☠", "团队死斗", "限时击杀 · 比拼得分", Color.parseColor("#C77D5E"), 2)
         mc("∞", "无尽狂潮", "无限敌人 · 挑战极限", wave2, 5)
-        mc("◎", "联机模式", "P2P 直连 · 合作对战", wave3, 4)
+        mc("◎", "联机模式", "P2P 直连 · 合作对战", wave3, 4, isNet = true)
 
         ui.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
@@ -156,13 +161,13 @@ class MainActivity : AppCompatActivity() {
                     setColor(cardBg); cornerRadius = dp(24).toFloat(); setStroke(dp(1), cardBorder)
                 }
                 setOnClickListener {
-                    val i = Intent(this@MainActivity, GameActivity::class.java)
-                    i.putExtra("mode", 0); i.putExtra("showSettings", true); startActivity(i)
+                    startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                    overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
                 }
             })
         })
         ui.addView(TextView(this).apply {
-            text = "V3.2.0"; setTextColor(textMuted); textSize = 10f
+            text = "V3.3.0"; setTextColor(textMuted); textSize = 10f
             gravity = Gravity.CENTER; setPadding(0, dp(10), 0, 0)
         })
 
