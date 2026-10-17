@@ -1,6 +1,6 @@
 name: Build APK
 
-# V3.1.1: 修复 P2P 联机 bug（创建房间不进入/退出不关连接/单机按钮残留）
+# V3.2.0: 引擎性能优化（移动端降分辨率/关抗锯齿/降阴影/敌人不投影）
 on:
   workflow_dispatch:
   push:
@@ -43,9 +43,9 @@ jobs:
             npm install @capacitor/core@5 @capacitor/android@5 --no-audit --no-fund && break || { echo "npm 第 $i 次失败"; sleep 10; }
           done
 
-      - name: 下载最新 V3.1.1 游戏文件
+      - name: 下载最新 V3.2.0 游戏文件
         run: |
-          curl -sL -o 枪战.HTML https://aka.doubaocdn.com/s/9RpO2GVZ7O
+          curl -sL -o 枪战.HTML https://aka.doubaocdn.com/s/l6iTCYDzVV
           ls -la 枪战.HTML
 
       - name: 拷贝游戏文件到 Web 资源目录
@@ -70,9 +70,9 @@ jobs:
       - name: Push APK to repo
         run: |
           mkdir -p releases
-          cp android/android/app/build/outputs/apk/debug/*.apk releases/fangkuai-tuji-v311.apk
+          cp android/android/app/build/outputs/apk/debug/*.apk releases/fangkuai-tuji-v320.apk
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add releases/fangkuai-tuji-v311.apk
-          git commit -m "V3.1.1 APK auto push" || echo "no change"
+          git add releases/fangkuai-tuji-v320.apk
+          git commit -m "V3.2.0 APK auto push" || echo "no change"
           git push origin main
