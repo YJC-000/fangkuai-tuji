@@ -17,6 +17,7 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
@@ -165,7 +166,14 @@ class MainActivity : AppCompatActivity() {
             gravity = Gravity.CENTER; setPadding(0, dp(10), 0, 0)
         })
 
-        frame.addView(ui, FrameLayout.LayoutParams(
+        val scroll = ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            addView(ui, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ))
+        }
+        frame.addView(scroll, FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT
         ))
         setContentView(frame)
