@@ -7,7 +7,12 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 
 class NetActivity : AppCompatActivity() {
@@ -96,14 +101,14 @@ class NetActivity : AppCompatActivity() {
             background = cardBg()
             setPadding(dp(16), dp(16), dp(16), dp(16))
         }
-        nameEt = makeEdit("玩家昵称", "玩家${(100..999).random()}")
-        roomEt = makeEdit("房间号", "${(1000..9999).random()}")
-        pwdEt = makeEdit("房间密码（可选）", "")
-        card.addView(nameEt)
+        nameEt = makeEdit("玩家${(100..999).random()}")
+        roomEt = makeEdit("${(1000..9999).random()}")
+        pwdEt = makeEdit("")
+        card.addView(makeLabeledEdit("玩家昵称", nameEt))
         card.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(dp(1), dp(10)) })
-        card.addView(roomEt)
+        card.addView(makeLabeledEdit("房间号", roomEt))
         card.addView(View(this).apply { layoutParams = LinearLayout.LayoutParams(dp(1), dp(10)) })
-        card.addView(pwdEt)
+        card.addView(makeLabeledEdit("房间密码（可选）", pwdEt))
         root.addView(card)
 
         val tip = TextView(this).apply {
@@ -142,6 +147,19 @@ class NetActivity : AppCompatActivity() {
         setContentView(scroll)
     }
 
+    private fun makeLabeledEdit(label: String, et: EditText): LinearLayout {
+        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val labelTv = TextView(this).apply {
+            text = label
+            textSize = 12f
+            setTextColor(Color.parseColor("#B0A498"))
+            setPadding(0, 0, 0, dp(4))
+        }
+        layout.addView(labelTv)
+        layout.addView(et)
+        return layout
+    }
+
     private fun refreshModeButtons() {
         setBtnStyle(createBtn, if (isCreate) "#E8A04A" else "#3A3228", if (isCreate) "#1A1714" else "#D4A574")
         setBtnStyle(joinBtn, if (!isCreate) "#E8A04A" else "#3A3228", if (!isCreate) "#1A1714" else "#D4A574")
@@ -169,15 +187,8 @@ class NetActivity : AppCompatActivity() {
         }
     }
 
-    private fun makeEdit(label: String, defValue: String): LinearLayout {
-        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        val labelTv = TextView(this).apply {
-            this.text = label
-            textSize = 12f
-            setTextColor(Color.parseColor("#B0A498"))
-            setPadding(0, 0, 0, dp(4))
-        }
-        val et = EditText(this).apply {
+    private fun makeEdit(defValue: String): EditText {
+        return EditText(this).apply {
             setText(defValue)
             setTextColor(Color.parseColor("#F5EDE0"))
             setHintTextColor(Color.parseColor("#6B6158"))
@@ -191,12 +202,9 @@ class NetActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(42))
         }
-        layout.addView(labelTv)
-        layout.addView(et)
-        return layout
     }
 
-    private fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button {
+    private fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int, onClick: (() -> Unit)? = null): Button {
         return Button(this).apply {
             this.text = text
             this.textSize = textSize
@@ -207,6 +215,7 @@ class NetActivity : AppCompatActivity() {
             }
             setPadding(dp(8), 0, dp(8), 0)
             isAllCaps = false
+            if (onClick != null) setOnClickListener { onClick() }
         }
     }
 
