@@ -36,9 +36,9 @@ Installing Android SDK Platform 33 in /usr/local/lib/android/sdk/platforms/andro
 > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
 > Task :capacitor-android:preBuild UP-TO-DATE
 > Task :capacitor-android:preDebugBuild UP-TO-DATE
-> Task :capacitor-android:writeDebugAarMetadata
 > Task :capacitor-cordova-android-plugins:preBuild UP-TO-DATE
 > Task :capacitor-cordova-android-plugins:preDebugBuild UP-TO-DATE
+> Task :capacitor-android:writeDebugAarMetadata
 > Task :capacitor-cordova-android-plugins:writeDebugAarMetadata
 > Task :app:generateDebugResValues
 > Task :capacitor-android:generateDebugResValues
@@ -55,23 +55,23 @@ Installing Android SDK Platform 33 in /usr/local/lib/android/sdk/platforms/andro
 > Task :app:extractDeepLinksDebug
 > Task :capacitor-android:extractDeepLinksDebug
 > Task :capacitor-cordova-android-plugins:extractDeepLinksDebug
-> Task :capacitor-android:processDebugManifest
 > Task :app:parseDebugLocalResources
-> Task :app:mergeDebugResources
+> Task :capacitor-android:processDebugManifest
 > Task :capacitor-cordova-android-plugins:processDebugManifest
+> Task :app:mergeDebugResources
 > Task :capacitor-android:compileDebugLibraryResources
 > Task :app:processDebugMainManifest
 > Task :app:processDebugManifest
 > Task :capacitor-cordova-android-plugins:compileDebugLibraryResources
 > Task :app:processDebugManifestForPackage
-> Task :capacitor-android:javaPreCompileDebug
 > Task :capacitor-android:parseDebugLocalResources
 > Task :capacitor-cordova-android-plugins:parseDebugLocalResources
+> Task :capacitor-android:javaPreCompileDebug
 > Task :capacitor-cordova-android-plugins:javaPreCompileDebug
 > Task :app:javaPreCompileDebug
 > Task :app:mergeDebugShaders
-> Task :capacitor-cordova-android-plugins:generateDebugRFile
 > Task :capacitor-android:generateDebugRFile
+> Task :capacitor-cordova-android-plugins:generateDebugRFile
 > Task :app:compileDebugShaders NO-SOURCE
 > Task :app:processDebugResources
 
@@ -93,8 +93,8 @@ Note: Recompile with -Xlint:unchecked for details.
 > Task :capacitor-cordova-android-plugins:packageDebugAssets
 > Task :app:mergeDebugAssets
 > Task :capacitor-cordova-android-plugins:bundleLibRuntimeToJarDebug
-> Task :capacitor-android:bundleLibRuntimeToJarDebug
 > Task :app:compressDebugAssets
+> Task :capacitor-android:bundleLibRuntimeToJarDebug
 > Task :app:desugarDebugFileDependencies
 > Task :app:processDebugJavaRes NO-SOURCE
 > Task :capacitor-android:processDebugJavaRes NO-SOURCE
@@ -103,29 +103,16 @@ Note: Recompile with -Xlint:unchecked for details.
 > Task :capacitor-cordova-android-plugins:bundleLibResDebug NO-SOURCE
 > Task :app:mergeDebugJniLibFolders
 > Task :app:checkDebugDuplicateClasses
-> Task :capacitor-android:mergeDebugJniLibFolders
 
 > Task :app:compileDebugKotlin
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:38:39 Unresolved reference: LayoutParams
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:39:28 Unresolved reference: LayoutParams
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:40:28 Unresolved reference: LayoutParams
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:48:77 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.NetActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:68:75 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.NetActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:71:73 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.NetActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:83:73 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.NetActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:86:71 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.NetActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:99:18 Type mismatch: inferred type is LinearLayout but EditText was expected
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:100:18 Type mismatch: inferred type is LinearLayout but EditText was expected
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:101:17 Type mismatch: inferred type is LinearLayout but EditText was expected
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:117:78 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.NetActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:31:39 Unresolved reference: LayoutParams
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:32:28 Unresolved reference: LayoutParams
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:33:28 Unresolved reference: LayoutParams
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:41:77 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.SettingsActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:117:13 Val cannot be reassigned
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:117:19 Type mismatch: inferred type is Int but Float was expected
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:152:30 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.SettingsActivity
-e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:184:30 Too many arguments for private final fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button defined in com.yjc.fangkuaituji.SettingsActivity
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:43:39 Unresolved reference: LayoutParams
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:44:28 Unresolved reference: LayoutParams
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/NetActivity.kt:45:28 Unresolved reference: LayoutParams
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:36:39 Unresolved reference: LayoutParams
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:37:28 Unresolved reference: LayoutParams
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:38:28 Unresolved reference: LayoutParams
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:122:13 Val cannot be reassigned
+e: file:///home/runner/work/fangkuai-tuji/fangkuai-tuji/android/android/app/src/main/java/com/yjc/fangkuaituji/SettingsActivity.kt:122:19 Type mismatch: inferred type is Int but Float was expected
 
 > Task :app:compileDebugKotlin FAILED
 > Task :app:mergeExtDexDebug
@@ -171,34 +158,6 @@ org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:com
 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:304)
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:463)
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
-	at org.gradle.execution.plan.DefaultPlanExecutor.process(DefaultPlanExecutor.java:116)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.executeWithServices(DefaultTaskExecutionGraph.java:136)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.execute(DefaultTaskExecutionGraph.java:121)
-	at org.gradle.execution.SelectedTaskExecutionAction.execute(SelectedTaskExecutionAction.java:35)
-	at org.gradle.execution.DryRunBuildExecutionAction.execute(DryRunBuildExecutionAction.java:51)
-	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:54)
-	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:43)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
-	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor.execute(BuildOperationFiringBuildWorkerExecutor.java:40)
-	at org.gradle.internal.build.DefaultBuildLifecycleController.lambda$executeTasks$7(DefaultBuildLifecycleController.java:172)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:258)
-	at org.gradle.internal.model.StateTransitionController.lambda$tryTransition$8(StateTransitionController.java:185)
-	at org.gradle.internal.work.DefaultSynchronizer.withLock(DefaultSynchronizer.java:44)
-	at org.gradle.internal.model.StateTransitionController.tryTransition(StateTransitionController.java:185)
-	at org.gradle.internal.build.DefaultBuildLifecycleController.executeTasks(DefaultBuildLifecycleController.java:172)
-	at org.gradle.internal.build.DefaultBuildWorkGraphController$DefaultBuildWorkGraph.runWork(DefaultBuildWorkGraphController.java:209)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
-	at org.gradle.composite.internal.DefaultBuildController.doRun(DefaultBuildController.java:172)
-	at org.gradle.composite.internal.DefaultBuildController.access$000(DefaultBuildController.java:47)
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:191)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
 Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionException: A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
@@ -320,34 +279,6 @@ Caused by: org.gradle.workers.internal.DefaultWorkerExecutor$WorkExecutionExcept
 	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:304)
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:463)
 	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:380)
-	at org.gradle.execution.plan.DefaultPlanExecutor.process(DefaultPlanExecutor.java:116)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.executeWithServices(DefaultTaskExecutionGraph.java:136)
-	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph.execute(DefaultTaskExecutionGraph.java:121)
-	at org.gradle.execution.SelectedTaskExecutionAction.execute(SelectedTaskExecutionAction.java:35)
-	at org.gradle.execution.DryRunBuildExecutionAction.execute(DryRunBuildExecutionAction.java:51)
-	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:54)
-	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor$ExecuteTasks.call(BuildOperationFiringBuildWorkerExecutor.java:43)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:199)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:157)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
-	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
-	at org.gradle.internal.operations.DefaultBuildOperationExecutor.call(DefaultBuildOperationExecutor.java:73)
-	at org.gradle.execution.BuildOperationFiringBuildWorkerExecutor.execute(BuildOperationFiringBuildWorkerExecutor.java:40)
-	at org.gradle.internal.build.DefaultBuildLifecycleController.lambda$executeTasks$7(DefaultBuildLifecycleController.java:172)
-	at org.gradle.internal.model.StateTransitionController.doTransition(StateTransitionController.java:258)
-	at org.gradle.internal.model.StateTransitionController.lambda$tryTransition$8(StateTransitionController.java:185)
-	at org.gradle.internal.work.DefaultSynchronizer.withLock(DefaultSynchronizer.java:44)
-	at org.gradle.internal.model.StateTransitionController.tryTransition(StateTransitionController.java:185)
-	at org.gradle.internal.build.DefaultBuildLifecycleController.executeTasks(DefaultBuildLifecycleController.java:172)
-	at org.gradle.internal.build.DefaultBuildWorkGraphController$DefaultBuildWorkGraph.runWork(DefaultBuildWorkGraphController.java:209)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.withLocks(DefaultWorkerLeaseService.java:249)
-	at org.gradle.internal.work.DefaultWorkerLeaseService.runAsWorkerThread(DefaultWorkerLeaseService.java:109)
-	at org.gradle.composite.internal.DefaultBuildController.doRun(DefaultBuildController.java:172)
-	at org.gradle.composite.internal.DefaultBuildController.access$000(DefaultBuildController.java:47)
-	at org.gradle.composite.internal.DefaultBuildController$BuildOpRunnable.run(DefaultBuildController.java:191)
 	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
 	at org.gradle.internal.concurrent.ManagedExecutorImpl$1.run(ManagedExecutorImpl.java:49)
 Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilation error. See log for more details
@@ -386,5 +317,5 @@ Caused by: org.jetbrains.kotlin.gradle.tasks.CompilationErrorException: Compilat
 
 * Get more help at https://help.gradle.org
 
-BUILD FAILED in 1m 24s
-49 actionable tasks: 49 executed
+BUILD FAILED in 1m 27s
+48 actionable tasks: 48 executed
