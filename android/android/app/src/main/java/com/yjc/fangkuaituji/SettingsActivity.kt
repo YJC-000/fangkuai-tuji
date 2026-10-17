@@ -7,7 +7,12 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.*
+import android.widget.Button
+import android.widget.GridLayout
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.SeekBar
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class SettingsActivity : AppCompatActivity() {
@@ -195,7 +200,7 @@ class SettingsActivity : AppCompatActivity() {
         return layout
     }
 
-    private fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int): Button {
+    private fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int, onClick: (() -> Unit)? = null): Button {
         return Button(this).apply {
             this.text = text
             this.textSize = textSize
@@ -206,6 +211,7 @@ class SettingsActivity : AppCompatActivity() {
             }
             setPadding(dp(8), 0, dp(8), 0)
             isAllCaps = false
+            if (onClick != null) setOnClickListener { onClick() }
         }
     }
 
