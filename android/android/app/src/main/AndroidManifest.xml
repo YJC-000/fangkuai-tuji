@@ -32,6 +32,22 @@
             android:hardwareAccelerated="true"
             android:screenOrientation="landscape" />
 
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:name=".SettingsActivity"
+            android:label="设置"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="landscape" />
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:name=".NetActivity"
+            android:label="联机对战"
+            android:theme="@style/AppTheme.NoActionBar"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="landscape" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
