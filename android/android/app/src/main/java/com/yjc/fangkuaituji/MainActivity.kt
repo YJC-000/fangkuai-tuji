@@ -1,29 +1,33 @@
 package com.yjc.fangkuaituji
 
 import android.content.Intent
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Shader
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
-import android.widget.*
+import android.view.animation.DecelerateInterpolator
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import android.graphics.Color
-import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
-import android.util.TypedValue
 
 class MainActivity : AppCompatActivity() {
 
-    private val bgGrad = intArrayOf(
-        Color.parseColor("#1F1B16"),
-        Color.parseColor("#1A1714"),
-        Color.parseColor("#201B16")
-    )
-    private val cardColor = Color.parseColor("#2A241D")
-    private val cardBorder = Color.parseColor("#3A3228")
-    private val accentOrange = Color.parseColor("#E8A04A")
-    private val accentGreen = Color.parseColor("#8BB876")
-    private val accentAmber = Color.parseColor("#D4A574")
+    private val bgTop = Color.parseColor("#1A1612")
+    private val bgBottom = Color.parseColor("#241E17")
+    private val wave1 = Color.parseColor("#E8A04A")
+    private val wave2 = Color.parseColor("#8BB876")
+    private val wave3 = Color.parseColor("#D4A574")
+    private val cardBg = Color.parseColor("#2A241D")
+    private val cardBorder = Color.parseColor("#3D3428")
     private val textPrimary = Color.parseColor("#F5EDE0")
     private val textSecondary = Color.parseColor("#B0A498")
     private val textMuted = Color.parseColor("#6B6158")
@@ -32,20 +36,57 @@ class MainActivity : AppCompatActivity() {
         TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics
     ).toInt()
 
-    private fun cardBg(): GradientDrawable = GradientDrawable().apply {
-        setColor(cardColor)
-        cornerRadius = dp(24).toFloat()
-        setStroke(1, cardBorder)
+    inner class WaveView(context: android.content.Context) : View(context) {
+        private val paint1 = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val paint2 = Paint(Paint.ANTI_ALIAS_FLAG)
+        private val paint3 = Paint(Paint.ANTI_ALIAS_FLAG)
+
+        init {
+            paint1.alpha = 18
+            paint2.alpha = 14
+            paint3.alpha = 10
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            super.onDraw(canvas)
+            val w = width.toFloat()
+            val h = height.toFloat()
+            val bg = LinearGradient(0f, 0f, 0f, h, bgTop, bgBottom, Shader.TileMode.CLAMP)
+            canvas.drawRect(0f, 0f, w, h, Paint().apply { shader = bg })
+            drawWave(canvas, w, h * 0.55f, h * 0.12f, w * 0.3f, paint1, wave1)
+            drawWave(canvas, w, h * 0.65f, h * 0.10f, w * 0.25f, paint2, wave2)
+            drawWave(canvas, w, h * 0.75f, h * 0.08f, w * 0.35f, paint3, wave3)
+        }
+
+        private fun drawWave(c: Canvas, w: Float, baseY: Float, amp: Float, period: Float, p: Paint, color: Int) {
+            p.color = color
+            val path = Path()
+            path.moveTo(0f, baseY)
+            var x = 0f
+            while (x < w) {
+                path.cubicTo(
+                    x + period * 0.25f, baseY - amp,
+                    x + period * 0.75f, baseY + amp,
+                    x + period, baseY
+                )
+                x += period
+            }
+            path.lineTo(w, h.toFloat())
+            path.lineTo(0f, h.toFloat())
+            path.close()
+            c.drawPath(path, p)
+        }
     }
 
-    private fun circleBg(color: Int): GradientDrawable = GradientDrawable().apply {
+    private fun glassCard(): GradientDrawable = GradientDrawable().apply {
+        setColor(cardBg)
+        cornerRadius = dp(28).toFloat()
+        setStroke(dp(1), cardBorder)
+    }
+
+    private fun circleIcon(color: Int): GradientDrawable = GradientDrawable().apply {
         shape = GradientDrawable.OVAL
         setColor(color)
-    }
-
-    private fun pillBg(color: Int): GradientDrawable = GradientDrawable().apply {
-        setColor(color)
-        cornerRadius = dp(30).toFloat()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,50 +96,66 @@ class MainActivity : AppCompatActivity() {
 
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, bgGrad)
-            setPadding(dp(24), dp(40), dp(24), dp(20))
+            setPadding(dp(32), dp(36), dp(32), dp(24))
         }
 
-        val header = LinearLayout(this).apply {
+        val wave = WaveView(this)
+        root.addView(wave, LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
+        ))
+
+        val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), 0, dp(4), dp(28))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT
+            )
         }
-        header.addView(TextView(this).apply {
+
+        val titleWrap = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, dp(8), 0, dp(24))
+        }
+        titleWrap.addView(TextView(this).apply {
             text = "方块突击"
             setTextColor(textPrimary)
-            textSize = 30f
+            textSize = 34f
             typeface = Typeface.DEFAULT_BOLD
+            letterSpacing = 0.05f
         })
-        header.addView(TextView(this).apply {
-            text = "Block Assault · 3D FPS"
+        titleWrap.addView(TextView(this).apply {
+            text = "BLOCK ASSAULT · 3D FPS"
             setTextColor(textMuted)
-            textSize = 13f
-            setPadding(0, dp(4), 0, 0)
+            textSize = 12f
+            setPadding(0, dp(6), 0, 0)
+            letterSpacing = 0.15f
         })
-        root.addView(header)
+        content.addView(titleWrap)
 
-        fun modeCard(icon: String, name: String, desc: String, accent: Int, mode: Int) {
+        val cards = mutableListOf<View>()
+        fun modeCard(icon: String, name: String, desc: String, accent: Int, mode: Int): View {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(20), dp(20), dp(20), dp(20))
-                background = cardBg()
+                setPadding(dp(18), dp(18), dp(18), dp(18))
+                background = glassCard()
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 0, 0, dp(14)) }
+                ).apply { setMargins(0, 0, 0, dp(12)) }
                 isClickable = true
+                elevation = dp(4).toFloat()
                 setOnClickListener { startGame(mode) }
             }
             card.addView(TextView(this).apply {
                 text = icon
-                textSize = 22f
+                textSize = 20f
                 gravity = Gravity.CENTER
-                background = circleBg(accent)
-                setTextColor(Color.parseColor("#1A1714"))
+                background = circleIcon(accent)
+                setTextColor(Color.parseColor("#1A1612"))
                 typeface = Typeface.DEFAULT_BOLD
-                layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)).apply {
-                    setMargins(0, 0, dp(16), 0)
+                layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply {
+                    setMargins(0, 0, dp(14), 0)
                 }
             })
             val texts = LinearLayout(this).apply {
@@ -108,43 +165,51 @@ class MainActivity : AppCompatActivity() {
             texts.addView(TextView(this).apply {
                 text = name
                 setTextColor(textPrimary)
-                textSize = 17f
+                textSize = 16f
                 typeface = Typeface.DEFAULT_BOLD
             })
             texts.addView(TextView(this).apply {
                 text = desc
                 setTextColor(textSecondary)
-                textSize = 12f
-                setPadding(0, dp(3), 0, 0)
+                textSize = 11f
+                setPadding(0, dp(2), 0, 0)
             })
             card.addView(texts)
             card.addView(TextView(this).apply {
-                text = "→"
+                text = "›"
                 setTextColor(textMuted)
-                textSize = 20f
+                textSize = 24f
+                typeface = Typeface.DEFAULT_BOLD
             })
-            root.addView(card)
+            return card
         }
 
-        modeCard("⚔", "生存模式", "消灭敌人，存活到底", accentOrange, 1)
-        modeCard("~", "无尽狂潮", "无限敌人，挑战极限", accentGreen, 5)
-        modeCard("◎", "联机模式", "P2P 直连，合作对战", accentAmber, 4)
+        cards.add(modeCard("⚔", "生存模式", "消灭敌人 · 存活到底", wave1, 1))
+        cards.add(modeCard("∞", "无尽狂潮", "无限敌人 · 挑战极限", wave2, 5))
+        cards.add(modeCard("◎", "联机模式", "P2P 直连 · 合作对战", wave3, 4))
+        cards.forEach { content.addView(it) }
 
-        root.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+        content.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f
+            )
         })
 
-        val settingsWrap = LinearLayout(this).apply {
+        val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(0, 0, 0, dp(20))
+            setPadding(0, dp(8), 0, 0)
         }
-        settingsWrap.addView(TextView(this).apply {
-            text = "⚙  设置"
+        bottom.addView(TextView(this).apply {
+            text = "  ⚙  设置  "
             setTextColor(textSecondary)
-            textSize = 14f
-            setPadding(dp(32), dp(12), dp(32), dp(12))
-            background = pillBg(cardColor)
+            textSize = 13f
+            setPadding(dp(28), dp(10), dp(28), dp(10))
+            background = GradientDrawable().apply {
+                setColor(cardBg)
+                cornerRadius = dp(24).toFloat()
+                setStroke(dp(1), cardBorder)
+            }
             setOnClickListener {
                 val i = Intent(this@MainActivity, GameActivity::class.java)
                 i.putExtra("mode", 0)
@@ -152,16 +217,38 @@ class MainActivity : AppCompatActivity() {
                 startActivity(i)
             }
         })
-        root.addView(settingsWrap)
-
-        root.addView(TextView(this).apply {
+        content.addView(bottom)
+        content.addView(TextView(this).apply {
             text = "V3.2.0"
             setTextColor(textMuted)
-            textSize = 11f
+            textSize = 10f
             gravity = Gravity.CENTER
+            setPadding(0, dp(10), 0, 0)
         })
 
+        root.addView(content)
         setContentView(root)
+
+        content.translationY = dp(40).toFloat()
+        content.alpha = 0f
+        content.animate()
+            .translationY(0f)
+            .alpha(1f)
+            .setDuration(500)
+            .setInterpolator(DecelerateInterpolator(1.5f))
+            .start()
+
+        cards.forEachIndexed { i, card ->
+            card.translationY = dp(30).toFloat()
+            card.alpha = 0f
+            card.animate()
+                .translationY(0f)
+                .alpha(1f)
+                .setStartDelay(150L + i * 100L)
+                .setDuration(400)
+                .setInterpolator(DecelerateInterpolator(1.5f))
+                .start()
+        }
     }
 
     private fun startGame(mode: Int) {
