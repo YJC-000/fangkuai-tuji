@@ -1,6 +1,5 @@
 name: Build APK
 
-# V3.2.0: Kotlin 原生菜单 + Three.js 游戏 WebView + 性能优化
 on:
   workflow_dispatch:
   push:
@@ -40,7 +39,7 @@ jobs:
           cd android
           npm init -y >/dev/null 2>&1 || true
           for i in 1 2 3; do
-            npm install @capacitor/core@5 @capacitor/android@5 --no-audit --no-fund && break || { echo "npm 第 $i 次失败"; sleep 10; }
+            npm install @capacitor/core@5 @capacitor/android@5 --no-audit --no-fund && break || { echo "npm retry $i"; sleep 10; }
           done
 
       - name: 下载最新 V3.2.0 游戏文件
@@ -48,14 +47,13 @@ jobs:
           curl -sL -o 枪战.HTML https://aka.doubaocdn.com/s/l6iTCYDzVV
           ls -la 枪战.HTML
 
-      - name: 拷贝游戏文件到 Web 资源目录
+      - name: 拷贝游戏文件
         run: |
           mkdir -p android/android/app/src/main/assets/public
           cp 枪战.HTML android/android/app/src/main/assets/public/index.html
           cp three.min.js android/android/app/src/main/assets/public/ 2>/dev/null || true
           curl -sL -o android/android/app/src/main/assets/public/peerjs.min.js https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js
           cp qrcode.min.js android/android/app/src/main/assets/public/ 2>/dev/null || true
-          ls -la android/android/app/src/main/assets/public
 
       - name: 允许 HTTP 明文流量
         run: |
@@ -65,14 +63,29 @@ jobs:
       - name: 构建 Debug APK
         run: |
           cd android/android
-          gradle assembleDebug --no-daemon
+          gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build_log.txt
+          if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
+            echo "=== BUILD FAILED ==="
+            tail -200 build_log.txt
+            exit 1
+          fi
 
-      - name: Push APK to repo
+      - name: Push APK
         run: |
           mkdir -p releases
-          cp android/android/app/build/outputs/apk/debug/*.apk releases/fangkuai-tuji-v320.apk
+          cp android/android/app/build/outputs/apk/debug/app-debug.apk releases/fangkuai-tuji-v320.apk
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add releases/fangkuai-tuji-v320.apk
           git commit -m "V3.2.0 APK auto push" || echo "no change"
           git push origin main
+
+      - name: 失败时推送日志
+        if: failure()
+        run: |
+          cp android/android/build_log.txt build_error.log 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add build_error.log 2>/dev/null || true
+          git commit -m "build error log" || echo "no change"
+          git push origin main || true

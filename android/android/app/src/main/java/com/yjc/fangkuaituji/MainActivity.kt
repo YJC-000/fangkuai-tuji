@@ -10,155 +10,141 @@ import androidx.appcompat.app.AppCompatActivity
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.util.TypedValue
 
 class MainActivity : AppCompatActivity() {
+
+    private val bgGrad = intArrayOf(
+        Color.parseColor("#1F1B16"),
+        Color.parseColor("#1A1714"),
+        Color.parseColor("#201B16")
+    )
+    private val cardColor = Color.parseColor("#2A241D")
+    private val cardBorder = Color.parseColor("#3A3228")
+    private val accentOrange = Color.parseColor("#E8A04A")
+    private val accentGreen = Color.parseColor("#8BB876")
+    private val accentAmber = Color.parseColor("#D4A574")
+    private val textPrimary = Color.parseColor("#F5EDE0")
+    private val textSecondary = Color.parseColor("#B0A498")
+    private val textMuted = Color.parseColor("#6B6158")
+
+    private fun dp(v: Int) = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_DIP, v.toFloat(), resources.displayMetrics
+    ).toInt()
+
+    private fun cardBg(): GradientDrawable = GradientDrawable().apply {
+        setColor(cardColor)
+        cornerRadius = dp(24).toFloat()
+        setStroke(1, cardBorder)
+    }
+
+    private fun circleBg(color: Int): GradientDrawable = GradientDrawable().apply {
+        shape = GradientDrawable.OVAL
+        setColor(color)
+    }
+
+    private fun pillBg(color: Int): GradientDrawable = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = dp(30).toFloat()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         hideSystemUI()
 
-        val root = FrameLayout(this).apply {
-            background = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(
-                    Color.parseColor("#0A1628"),
-                    Color.parseColor("#0D1F3C"),
-                    Color.parseColor("#070D18")
-                )
-            )
-        }
-
-        val glow1 = View(this).apply {
-            val d = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                colors = intArrayOf(Color.parseColor("#401565C0"), Color.TRANSPARENT)
-                gradientType = GradientDrawable.RADIAL_GRADIENT
-                gradientRadius = 400f
-            }
-            background = d
-            layoutParams = FrameLayout.LayoutParams(600, 600).apply {
-                gravity = Gravity.TOP or Gravity.END
-                setMargins(-150, -150, 0, 0)
-            }
-        }
-        root.addView(glow1)
-
-        val glow2 = View(this).apply {
-            val d = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                colors = intArrayOf(Color.parseColor("#3000E5FF"), Color.TRANSPARENT)
-                gradientType = GradientDrawable.RADIAL_GRADIENT
-                gradientRadius = 350f
-            }
-            background = d
-            layoutParams = FrameLayout.LayoutParams(500, 500).apply {
-                gravity = Gravity.BOTTOM or Gravity.START
-                setMargins(-100, 0, 0, -100)
-            }
-        }
-        root.addView(glow2)
-
-        val content = LinearLayout(this).apply {
+        val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(100, 0, 100, 0)
-            layoutParams = FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-            )
+            background = GradientDrawable(GradientDrawable.Orientation.TL_BR, bgGrad)
+            setPadding(dp(24), dp(40), dp(24), dp(20))
         }
 
-        val titleEn = TextView(this).apply {
-            text = "BLOCK ASSAULT"
-            textSize = 13f
-            setTextColor(Color.parseColor("#4FC3F7"))
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            letterSpacing = 0.3f
-            setPadding(0, 0, 0, 4)
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(4), 0, dp(4), dp(28))
         }
-        content.addView(titleEn)
-
-        val titleCn = TextView(this).apply {
+        header.addView(TextView(this).apply {
             text = "方块突击"
-            textSize = 48f
-            setTextColor(Color.WHITE)
+            setTextColor(textPrimary)
+            textSize = 30f
             typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.CENTER
-            setPadding(0, 0, 0, 6)
-            setShadowLayer(20f, 0f, 0f, Color.parseColor("#804FC3F7"))
-        }
-        content.addView(titleCn)
+        })
+        header.addView(TextView(this).apply {
+            text = "Block Assault · 3D FPS"
+            setTextColor(textMuted)
+            textSize = 13f
+            setPadding(0, dp(4), 0, 0)
+        })
+        root.addView(header)
 
-        val titleLine = View(this).apply {
-            background = GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                intArrayOf(Color.TRANSPARENT, Color.parseColor("#4FC3F7"), Color.TRANSPARENT)
-            )
-            layoutParams = LinearLayout.LayoutParams(300, 2).apply {
-                setMargins(0, 8, 0, 30)
-            }
-        }
-        content.addView(titleLine)
-
-        fun modeCard(icon: String, name: String, desc: String, color: String, mode: Int): LinearLayout {
+        fun modeCard(icon: String, name: String, desc: String, accent: Int, mode: Int) {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(30, 22, 30, 22)
-                val bg = GradientDrawable().apply {
-                    setColor(Color.parseColor("#1A2A42"))
-                    cornerRadius = 18f
-                    setStroke(1, Color.parseColor("#2A4A6A"))
-                }
-                background = bg
+                setPadding(dp(20), dp(20), dp(20), dp(20))
+                background = cardBg()
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { setMargins(0, 10, 0, 10) }
+                ).apply { setMargins(0, 0, 0, dp(14)) }
+                isClickable = true
                 setOnClickListener { startGame(mode) }
             }
-            val iconCircle = TextView(this).apply {
+            card.addView(TextView(this).apply {
                 text = icon
                 textSize = 22f
                 gravity = Gravity.CENTER
-                val d = GradientDrawable().apply {
-                    shape = GradientDrawable.OVAL
-                    setColor(Color.parseColor(color))
+                background = circleBg(accent)
+                setTextColor(Color.parseColor("#1A1714"))
+                typeface = Typeface.DEFAULT_BOLD
+                layoutParams = LinearLayout.LayoutParams(dp(52), dp(52)).apply {
+                    setMargins(0, 0, dp(16), 0)
                 }
-                background = d
-                layoutParams = LinearLayout.LayoutParams(56, 56).apply {
-                    setMargins(0, 0, 20, 0)
-                }
+            })
+            val texts = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             }
-            card.addView(iconCircle)
-            val textCol = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-            textCol.addView(TextView(this).apply {
+            texts.addView(TextView(this).apply {
                 text = name
-                textSize = 18f
-                setTextColor(Color.WHITE)
+                setTextColor(textPrimary)
+                textSize = 17f
                 typeface = Typeface.DEFAULT_BOLD
             })
-            textCol.addView(TextView(this).apply {
+            texts.addView(TextView(this).apply {
                 text = desc
+                setTextColor(textSecondary)
                 textSize = 12f
-                setTextColor(Color.parseColor("#7A9AB8"))
+                setPadding(0, dp(3), 0, 0)
             })
-            card.addView(textCol)
-            return card
+            card.addView(texts)
+            card.addView(TextView(this).apply {
+                text = "→"
+                setTextColor(textMuted)
+                textSize = 20f
+            })
+            root.addView(card)
         }
 
-        content.addView(modeCard("🔫", "生存模式", "消灭敌人，存活到底", "#1565C0", 1))
-        content.addView(modeCard("🌊", "无尽狂潮", "敌人无限刷新，挑战极限", "#2E7D32", 5))
-        content.addView(modeCard("🌐", "联机模式", "P2P 直连，双人合作/对战", "#6A1B9A", 4))
+        modeCard("⚔", "生存模式", "消灭敌人，存活到底", accentOrange, 1)
+        modeCard("~", "无尽狂潮", "无限敌人，挑战极限", accentGreen, 5)
+        modeCard("◎", "联机模式", "P2P 直连，合作对战", accentAmber, 4)
 
-        content.addView(TextView(this).apply {
-            text = "⚙  设置"
-            textSize = 15f
-            setTextColor(Color.parseColor("#8AA4B8"))
+        root.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+        })
+
+        val settingsWrap = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(0, 30, 0, 0)
+            setPadding(0, 0, 0, dp(20))
+        }
+        settingsWrap.addView(TextView(this).apply {
+            text = "⚙  设置"
+            setTextColor(textSecondary)
+            textSize = 14f
+            setPadding(dp(32), dp(12), dp(32), dp(12))
+            background = pillBg(cardColor)
             setOnClickListener {
                 val i = Intent(this@MainActivity, GameActivity::class.java)
                 i.putExtra("mode", 0)
@@ -166,16 +152,15 @@ class MainActivity : AppCompatActivity() {
                 startActivity(i)
             }
         })
+        root.addView(settingsWrap)
 
-        content.addView(TextView(this).apply {
+        root.addView(TextView(this).apply {
             text = "V3.2.0"
+            setTextColor(textMuted)
             textSize = 11f
-            setTextColor(Color.parseColor("#3A5A7A"))
             gravity = Gravity.CENTER
-            setPadding(0, 15, 0, 0)
         })
 
-        root.addView(content)
         setContentView(root)
     }
 
