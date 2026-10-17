@@ -54,9 +54,9 @@ class NetActivity : AppCompatActivity() {
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = ScrollView.LayoutParams(
-                ScrollView.LayoutParams.MATCH_PARENT,
-                ScrollView.LayoutParams.WRAP_CONTENT)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT)
         }
 
         val titleBar = LinearLayout(this).apply {
@@ -197,7 +197,7 @@ class NetActivity : AppCompatActivity() {
         Thread {
             try {
                 val rooms = fetchRooms()
-                val taken = rooms.any { it.optString("roomId") == room }
+                val taken = (0 until rooms.length()).any { rooms.getJSONObject(it).optString("roomId") == room }
                 handler.post {
                     if (taken) {
                         roomListStatus.text = "❌ 房间号已被占用，请换一个"

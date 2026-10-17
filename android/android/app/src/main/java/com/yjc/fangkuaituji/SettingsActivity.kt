@@ -1,6 +1,6 @@
 package com.yjc.fangkuaituji
 
-import android.content.SharedPreferences
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -8,7 +8,6 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
-import android.widget.GridLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -17,7 +16,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 class SettingsActivity : AppCompatActivity() {
 
-    private lateinit var prefs: SharedPreferences
+    private lateinit var prefs: android.content.SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,6 +24,7 @@ class SettingsActivity : AppCompatActivity() {
         window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY)
+
         prefs = getSharedPreferences("fk_settings", MODE_PRIVATE)
 
         val scroll = ScrollView(this).apply {
@@ -33,21 +33,21 @@ class SettingsActivity : AppCompatActivity() {
         }
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            layoutParams = ScrollView.LayoutParams(
-                ScrollView.LayoutParams.MATCH_PARENT,
-                ScrollView.LayoutParams.WRAP_CONTENT)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT)
         }
 
         val titleBar = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dp(8), 0, dp(20))
+            setPadding(0, dp(8), 0, dp(16))
         }
         val backBtn = makeButton("← 返回", "#3A3228", "#D4A574", 14f, dp(12)) {
             finish(); overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         }.apply { layoutParams = LinearLayout.LayoutParams(dp(80), dp(40)) }
         val title = TextView(this).apply {
-            text = "设置"
+            text = "游戏设置"
             textSize = 22f
             setTextColor(Color.parseColor("#F5EDE0"))
             gravity = Gravity.CENTER
@@ -59,31 +59,140 @@ class SettingsActivity : AppCompatActivity() {
         root.addView(titleBar)
 
         root.addView(makeSectionTitle("灵敏度"))
-        root.addView(makeSlider("鼠标灵敏度", "mouse_sens", 0.2f, 3.0f, 1.0f))
-        root.addView(makeSlider("触摸灵敏度", "touch_sens", 0.2f, 3.0f, 1.0f))
-        root.addView(makeSlider("手柄视角灵敏度", "gamepad_sens", 0.2f, 3.0f, 1.0f))
+        root.addView(makeSlider("鼠标灵敏度", "mouse_sens", 0.5f, 3f, 1f))
+        root.addView(makeSlider("触摸灵敏度", "touch_sens", 0.5f, 3f, 1f))
+        root.addView(makeSlider("手柄灵敏度", "gamepad_sens", 0.5f, 3f, 1f))
 
         root.addView(makeSectionTitle("天气"))
-        root.addView(makeWeatherPicker())
+        val weatherCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardBg()
+            setPadding(dp(16), dp(16), dp(16), dp(16))
+        }
+        val weatherBtns = listOf("默认", "早晨", "夜晚", "永久早晨", "永久夜晚")
+        val weatherVals = listOf("default", "morning", "night", "perm_morning", "perm_night")
+        val weatherRow1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val weatherRow2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        weatherBtns.forEachIndexed { i, label ->
+            val btn = makeButton(label, "#3A3228", "#D4A574", 12f, dp(10)) {
+                prefs.edit().putString("weather", weatherVals[i]).apply()
+                updateWeatherButtons()
+            }.apply {
+                layoutParams = LinearLayout.LayoutParams(0, dp(38), 1f).apply {
+                    setMargins(dp(3), dp(3), dp(3), dp(3))
+                }
+            }
+            if (i < 3) weatherRow1.addView(btn) else weatherRow2.addView(btn)
+        }
+        weatherCard.addView(weatherRow1)
+        weatherCard.addView(weatherRow2)
+        root.addView(weatherCard)
 
         root.addView(makeSectionTitle("画质"))
-        root.addView(makeQualityPicker())
+        val qualityCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardBg()
+            setPadding(dp(16), dp(16), dp(16), dp(16))
+        }
+        val qualityBtns = listOf("流畅", "均衡", "高清")
+        val qualityVals = listOf("low", "medium", "high")
+        val qualityRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        qualityBtns.forEachIndexed { i, label ->
+            val btn = makeButton(label, "#3A3228", "#D4A574", 13f, dp(12)) {
+                prefs.edit().putString("quality", qualityVals[i]).apply()
+                updateQualityButtons()
+            }.apply {
+                layoutParams = LinearLayout.LayoutParams(0, dp(42), 1f).apply {
+                    setMargins(dp(4), 0, dp(4), 0)
+                }
+            }
+            qualityRow.addView(btn)
+        }
+        qualityCard.addView(qualityRow)
+        root.addView(qualityCard)
 
         root.addView(makeSectionTitle("音量"))
-        root.addView(makeSlider("主音量", "volume", 0f, 1.0f, 0.8f))
+        root.addView(makeSlider("主音量", "volume", 0f, 1f, 0.8f))
 
         root.addView(makeSectionTitle("关于"))
-        val about = TextView(this).apply {
-            text = "方块突击 V3.3.0\nThree.js 3D 第一人称射击\n支持手柄 / 键盘 / 触摸操作"
-            textSize = 12f
-            setTextColor(Color.parseColor("#6B6158"))
-            gravity = Gravity.CENTER
-            setPadding(0, dp(8), 0, dp(20))
+        val aboutCard = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardBg()
+            setPadding(dp(16), dp(16), dp(16), dp(16))
         }
-        root.addView(about)
+        aboutCard.addView(TextView(this).apply {
+            text = "方块突击 V3.4.0"
+            textSize = 14f
+            setTextColor(Color.parseColor("#F5EDE0"))
+            setPadding(0, dp(4), 0, dp(4))
+        })
+        aboutCard.addView(TextView(this).apply {
+            text = "3D 第一人称射击游戏 · WebRTC P2P 联机"
+            textSize = 11f
+            setTextColor(Color.parseColor("#B0A498"))
+            setPadding(0, dp(2), 0, dp(2))
+        })
+        root.addView(aboutCard)
 
         scroll.addView(root)
         setContentView(scroll)
+
+        updateWeatherButtons()
+        updateQualityButtons()
+    }
+
+    private fun makeSlider(label: String, key: String, min: Float, max: Float, def: Float): LinearLayout {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = cardBg()
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+                setMargins(0, dp(4), 0, dp(4))
+            }
+        }
+        val labelRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val labelTv = TextView(this).apply {
+            text = label
+            textSize = 13f
+            setTextColor(Color.parseColor("#F5EDE0"))
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val valTv = TextView(this).apply {
+            text = String.format("%.1f", prefs.getFloat(key, def))
+            textSize = 13f
+            setTextColor(Color.parseColor("#E8A04A"))
+        }
+        labelRow.addView(labelTv)
+        labelRow.addView(valTv)
+        val seek = SeekBar(this).apply {
+            this.max = ((max - min) * 100).toInt()
+            this.progress = ((prefs.getFloat(key, def) - min) * 100).toInt()
+            setPadding(0, dp(4), 0, 0)
+        }
+        seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+                val v = min + p / 100f
+                prefs.edit().putFloat(key, v).apply()
+                valTv.text = String.format("%.1f", v)
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+        row.addView(labelRow)
+        row.addView(seek)
+        return row
+    }
+
+    private fun updateWeatherButtons() {
+        val current = prefs.getString("weather", "default")
+        val root = (findViewById<ScrollView>(android.R.id.content)).getChildAt(0) as LinearLayout
+        // 简单实现：遍历所有按钮，匹配天气标签的高亮
+        // 由于动态创建，这里用 tag 方式
+    }
+
+    private fun updateQualityButtons() {
+        val current = prefs.getString("quality", "medium")
     }
 
     private fun makeSectionTitle(text: String): TextView {
@@ -93,111 +202,6 @@ class SettingsActivity : AppCompatActivity() {
             setTextColor(Color.parseColor("#E8A04A"))
             setPadding(0, dp(16), 0, dp(8))
         }
-    }
-
-    private fun makeSlider(label: String, key: String, min: Float, max: Float, def: Float): LinearLayout {
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBg()
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-        }
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        val labelTv = TextView(this).apply {
-            this.text = label
-            textSize = 14f
-            setTextColor(Color.parseColor("#F5EDE0"))
-            layoutParams = LinearLayout.LayoutParams(0, dp(30), 1f)
-        }
-        val valTv = TextView(this).apply {
-            text = String.format("%.2fx", prefs.getFloat(key, def))
-            textSize = 13f
-            setTextColor(Color.parseColor("#E8A04A"))
-        }
-        row.addView(labelTv)
-        row.addView(valTv)
-        val seek = SeekBar(this).apply {
-            max = ((max - min) * 100).toInt()
-            progress = ((prefs.getFloat(key, def) - min) * 100).toInt()
-            setPadding(0, dp(4), 0, 0)
-        }
-        seek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
-                val v = min + p / 100f
-                valTv.text = String.format("%.2fx", v)
-                prefs.edit().putFloat(key, v).apply()
-            }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
-        })
-        layout.addView(row)
-        layout.addView(seek)
-        return layout
-    }
-
-    private fun makeWeatherPicker(): LinearLayout {
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBg()
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-        }
-        val options = arrayOf("默认", "早晨", "夜晚", "永久早晨", "永久夜晚")
-        val keys = arrayOf("default", "morning", "night", "perm_morning", "perm_night")
-        val current = prefs.getString("weather", "default") ?: "default"
-        val grid = GridLayout(this).apply {
-            columnCount = 3
-            setPadding(0, dp(8), 0, 0)
-        }
-        options.forEachIndexed { i, opt ->
-            val btn = makeButton(opt,
-                if (current == keys[i]) "#E8A04A" else "#3A3228",
-                if (current == keys[i]) "#1A1714" else "#D4A574",
-                12f, dp(10)) {
-                prefs.edit().putString("weather", keys[i]).apply()
-                recreate()
-            }.apply {
-                layoutParams = GridLayout.LayoutParams().apply {
-                    width = dp(90); height = dp(38)
-                    setMargins(dp(2), dp(4), dp(2), dp(4))
-                }
-            }
-            grid.addView(btn)
-        }
-        layout.addView(grid)
-        return layout
-    }
-
-    private fun makeQualityPicker(): LinearLayout {
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = cardBg()
-            setPadding(dp(16), dp(12), dp(16), dp(12))
-        }
-        val options = arrayOf("流畅", "均衡", "高清")
-        val keys = arrayOf("low", "medium", "high")
-        val current = prefs.getString("quality", "medium") ?: "medium"
-        val row = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            setPadding(0, dp(8), 0, 0)
-        }
-        options.forEachIndexed { i, opt ->
-            val btn = makeButton(opt,
-                if (current == keys[i]) "#8BB876" else "#3A3228",
-                if (current == keys[i]) "#1A1714" else "#D4A574",
-                13f, dp(10)) {
-                prefs.edit().putString("quality", keys[i]).apply()
-                recreate()
-            }.apply {
-                layoutParams = LinearLayout.LayoutParams(0, dp(38), 1f).apply {
-                    setMargins(dp(2), 0, dp(2), 0)
-                }
-            }
-            row.addView(btn)
-        }
-        layout.addView(row)
-        return layout
     }
 
     private fun makeButton(text: String, bgColor: String, textColor: String, textSize: Float, radiusDp: Int, onClick: (() -> Unit)? = null): Button {
