@@ -1,16 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- V3.2.0 Kotlin 原生菜单 + Three.js 游戏 WebView -->
-
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
+        android:hardwareAccelerated="true"
         android:theme="@style/AppTheme.NoActionBar">
 
-        <!-- 原生 Kotlin 菜单（启动页） -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
@@ -18,21 +16,20 @@
             android:theme="@style/AppTheme.NoActionBar"
             android:launchMode="singleTask"
             android:exported="true"
+            android:hardwareAccelerated="true"
             android:screenOrientation="landscape">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
 
-        <!-- 游戏 WebView（Capacitor BridgeActivity） -->
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".GameActivity"
             android:label="@string/app_name"
             android:theme="@style/AppTheme.NoActionBar"
+            android:hardwareAccelerated="true"
             android:screenOrientation="landscape" />
 
         <provider
