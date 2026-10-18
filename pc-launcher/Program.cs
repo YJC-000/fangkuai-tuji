@@ -203,7 +203,7 @@ namespace GunLauncher {
 
     public MainForm() {
       try {
-        Text = "方块突击 V3.4.0";
+        Text = "方块突击 V3.4.1";
         Size = new Size(960, 640);
         MinimumSize = new Size(800, 560);
         StartPosition = FormStartPosition.CenterScreen;
@@ -279,7 +279,7 @@ namespace GunLauncher {
       topBar.Controls.Add(lblTitle);
 
       var lblVer = new Label {
-        Text = "V3.4.0  ",
+        Text = "V3.4.1  ",
         Font = new Font("Microsoft YaHei UI", 9F),
         ForeColor = Theme.TEXT3,
         TextAlign = ContentAlignment.MiddleRight,
@@ -334,7 +334,7 @@ namespace GunLauncher {
       topBar.Size = new Size(w, 56);
       // 版本号靠右
       foreach (Control c in topBar.Controls) {
-        if (c.Text == "V3.4.0  ") c.Location = new Point(w - 90, 0);
+        if (c.Text == "V3.4.1  ") c.Location = new Point(w - 90, 0);
       }
       navPanel.Location = new Point(0, 56);
       navPanel.Size = new Size(190, h - 56);
@@ -681,7 +681,7 @@ namespace GunLauncher {
       lblRoomStatus.Text = "正在刷新…";
       roomListPanel.Controls.Clear();
       try {
-        var json = await http.GetStringAsync(ROOM_API + "/rooms");
+        var json = await HttpGetRetry(ROOM_API + "/rooms");
         var serializer = new JavaScriptSerializer();
         var rooms = serializer.Deserialize<List<Dictionary<string, object>>>(json);
         lblRoomStatus.Text = $"共 {rooms.Count} 个房间";
@@ -780,6 +780,28 @@ namespace GunLauncher {
       } catch { lblRoomStatus.Text = "随机匹配失败"; }
     }
 
+    // crudcrud 免费服务偶发 500 / 网络抖动，自动重试最多 3 次
+    async Task<string> HttpGetRetry(string url) {
+      Exception last = null;
+      for (int i = 0; i < 3; i++) {
+        try { return await http.GetStringAsync(url); }
+        catch (Exception e) { last = e; await Task.Delay(700); }
+      }
+      throw last;
+    }
+    async Task<HttpResponseMessage> HttpPostRetry(string url, string json) {
+      Exception last = null;
+      for (int i = 0; i < 3; i++) {
+        try {
+          var resp = await http.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
+          if (resp.IsSuccessStatusCode) return resp;
+          last = new Exception("HTTP " + (int)resp.StatusCode);
+        } catch (Exception e) { last = e; }
+        await Task.Delay(700);
+      }
+      throw last;
+    }
+
     async void StartOnline() {
       var name = string.IsNullOrWhiteSpace(txtName.Text) ? "玩家" + new Random().Next(100, 999) : txtName.Text.Trim();
       var room = txtRoom.Text.Trim();
@@ -792,7 +814,7 @@ namespace GunLauncher {
       var serializer = new JavaScriptSerializer();
 
       try {
-        var json = await http.GetStringAsync(ROOM_API + "/rooms");
+        var json = await HttpGetRetry(ROOM_API + "/rooms");
         var rooms = serializer.Deserialize<List<Dictionary<string, object>>>(json)
                     ?? new List<Dictionary<string, object>>();
 
@@ -813,8 +835,7 @@ namespace GunLauncher {
             { "mode", mode },
             { "ts", (long)(DateTime.UtcNow - new DateTime(1970,1,1)).TotalSeconds }
           };
-          var resp = await http.PostAsync(ROOM_API + "/rooms",
-            new StringContent(serializer.Serialize(payload), Encoding.UTF8, "application/json"));
+          var resp = await HttpPostRetry(ROOM_API + "/rooms", serializer.Serialize(payload));
           var respBody = await resp.Content.ReadAsStringAsync();
           if (resp.IsSuccessStatusCode) {
             var created = serializer.Deserialize<Dictionary<string, object>>(respBody);
@@ -968,7 +989,7 @@ namespace GunLauncher {
       y += rowH + gap + 12;
 
       scroll.Controls.Add(new Label {
-        Text = "方块突击 V3.4.0 · 3D 第一人称射击 · WebRTC 远程联机",
+        Text = "方块突击 V3.4.1 · 3D 第一人称射击 · WebRTC 远程联机",
         Font = new Font("Microsoft YaHei UI", 9F), ForeColor = Theme.TEXT3,
         BackColor = Color.Transparent, Location = new Point(0, y), AutoSize = true
       });
@@ -1033,7 +1054,7 @@ namespace GunLauncher {
         StartServer();
         System.Threading.Thread.Sleep(300);
 
-        string url = $"http://127.0.0.1:{PORT}/枪战.HTML?mode={mode}&autostart=1"
+        string url = $"http://127.0.0.1:{PORT}/枪战.HTML?mode={mode}&autostart=1&p2p=1"
           + $"&sens={MouseSens}&tsens={TouchSens}&psens={PadSens}&vol={Volume}"
           + $"&weather={Weather}&quality={Quality}";
         if (!string.IsNullOrEmpty(name)) url += $"&name={Uri.EscapeDataString(name)}";
