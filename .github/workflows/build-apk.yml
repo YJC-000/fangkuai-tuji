@@ -3,10 +3,18 @@ name: Build APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'android/**'
+      - '枪战.HTML'
+      - 'index.html'
+      - 'three.min.js'
+      - 'peerjs.min.js'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'icon-*.png'
       - '.github/workflows/build-apk.yml'
+    tags: ['v*']
 
 permissions:
   contents: write
@@ -18,42 +26,36 @@ jobs:
       - name: 拉取代码
         uses: actions/checkout@v4
 
-      - name: 安装 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: 安装 Java 17
         uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: 17
+        with: { distribution: temurin, java-version: 17 }
 
       - name: 安装 Gradle 8.0.2
         uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: '8.0.2'
+        with: { gradle-version: '8.0.2' }
 
       - name: 安装 Capacitor 依赖
         run: |
           cd android
           npm init -y >/dev/null 2>&1 || true
           for i in 1 2 3; do
-            npm install @capacitor/core@5 @capacitor/android@5 --no-audit --no-fund && break || { echo "npm retry $i"; sleep 10; }
+            npm install @capacitor/core@5 @capacitor/android@5 --no-audit --no-fund && break || { echo "npm retry $i"; sleep 8; }
           done
 
-      - name: 下载最新 V3.4.0 游戏文件
+      - name: 拷贝仓库最新游戏文件（不再从 CDN 拉旧版）
         run: |
-          curl -sL -o 枪战.HTML https://aka.doubaocdn.com/s/iaGU7ApDCS
-          ls -la 枪战.HTML
-
-      - name: 拷贝游戏文件
-        run: |
-          mkdir -p android/android/app/src/main/assets/public
-          cp 枪战.HTML android/android/app/src/main/assets/public/index.html
-          cp three.min.js android/android/app/src/main/assets/public/ 2>/dev/null || true
-          curl -sL -o android/android/app/src/main/assets/public/peerjs.min.js https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js
-          cp qrcode.min.js android/android/app/src/main/assets/public/ 2>/dev/null || true
+          set -e
+          PUB=android/android/app/src/main/assets/public
+          mkdir -p "$PUB"
+          cp 枪战.HTML "$PUB/index.html"
+          cp index.html "$PUB/index.html"
+          cp three.min.js "$PUB/" 2>/dev/null || true
+          cp peerjs.min.js "$PUB/" 2>/dev/null || curl -sL -o "$PUB/peerjs.min.js" https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js
+          cp sw.js "$PUB/" 2>/dev/null || true
+          cp manifest.json "$PUB/" 2>/dev/null || true
+          cp icon-192.png icon-512.png icon-180.png "$PUB/" 2>/dev/null || true
+          ls -la "$PUB"
+          echo "index.html 大小: $(wc -c < "$PUB/index.html")"
 
       - name: 允许 HTTP 明文流量
         run: |
@@ -65,36 +67,35 @@ jobs:
           cd android/android
           gradle assembleDebug --no-daemon --stacktrace 2>&1 | tee build_log.txt
           if [ ! -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            echo "=== BUILD FAILED ==="
-            tail -200 build_log.txt
-            exit 1
+            echo "=== BUILD FAILED ==="; tail -200 build_log.txt; exit 1
           fi
 
-      - name: Push APK
+      - name: 重命名 APK
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main || true
-          mkdir -p releases
-          cp android/android/app/build/outputs/apk/debug/app-debug.apk releases/fangkuai-tuji-v340.apk
-          git add releases/fangkuai-tuji-v340.apk
-          git commit -m "V3.4.0 APK auto push" || echo "no change"
-          git push origin main
+          mkdir -p release
+          cp android/android/app/build/outputs/apk/debug/app-debug.apk release/fangkuai-tuji-v342.apk
+          ls -la release/
 
-      - name: 上传 APK 到 Artifact（备用）
-        if: always()
+      - name: 上传 APK 构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: fangkuai-tuji-v340
-          path: android/android/app/build/outputs/apk/debug/app-debug.apk
+          name: fangkuai-tuji-v342-apk
+          path: release/fangkuai-tuji-v342.apk
+          if-no-files-found: error
 
-      - name: 失败时推送日志
-        if: failure()
-        run: |
-          cp android/android/build_log.txt build_error.log 2>/dev/null || true
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin main || true
-          git add build_error.log 2>/dev/null || true
-          git commit -m "build error log" || echo "no change"
-          git push origin main || true
+      - name: 发布到 Release v3.4.2
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v3.4.2
+          name: 方块突击 v3.4.2
+          body: |
+            ## 方块突击 v3.4.2
+
+            ### 手机版（Android APK）
+            下载 **fangkuai-tuji-v342.apk** 后安装即可（需允许安装未知来源）。
+            - 修复设置闪退、返回主菜单卡死、画面模糊
+            - 远程联机：托管房间列表、密码锁、随机进入、无密码直进、复制快捷网址
+            - 手机专属暖色界面，固定横屏
+            - 新增火箭筒（5）、手雷改 6，手雷伤害修复
+          files: release/fangkuai-tuji-v342.apk
+          fail_on_unmatched_files: true
