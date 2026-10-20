@@ -145,6 +145,7 @@ class MainActivity : AppCompatActivity() {
         }
         mc("⚔", "生存模式", "消灭敌人 · 存活到底", wave1, 1)
         mc("☠", "团队死斗", "限时击杀 · 比拼得分", Color.parseColor("#C77D5E"), 2)
+        mc("⏱", "限时模式", "争分夺秒 · 限时挑战", Color.parseColor("#D4A574"), 3)
         mc("∞", "无尽狂潮", "无限敌人 · 挑战极限", wave2, 5)
         mc("◎", "联机模式", "P2P 直连 · 合作对战", wave3, 4, isNet = true)
 
@@ -167,7 +168,7 @@ class MainActivity : AppCompatActivity() {
             })
         })
         ui.addView(TextView(this).apply {
-            text = "V3.3.0"; setTextColor(textMuted); textSize = 10f
+            text = "V3.4.2"; setTextColor(textMuted); textSize = 10f
             gravity = Gravity.CENTER; setPadding(0, dp(10), 0, 0)
         })
 

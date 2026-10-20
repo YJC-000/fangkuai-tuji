@@ -1,0 +1,107 @@
+name: build-pc
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'pc-launcher/**'
+      - '枪战.HTML'
+      - 'index.html'
+      - 'three.min.js'
+      - 'peerjs.min.js'
+      - 'sw.js'
+      - 'manifest.json'
+      - 'icon-*.png'
+      - '.github/workflows/build-pc.yml'
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build-pc:
+    runs-on: windows-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 配置 MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: 暂存游戏文件并打包 game.zip
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:GITHUB_WORKSPACE 'game-stage'
+          if (Test-Path $stage) { Remove-Item $stage -Recurse -Force }
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          $files = @(
+            '枪战.HTML','three.min.js','peerjs.min.js','index.html',
+            'sw.js','manifest.json','icon-192.png','icon-512.png','icon-180.png'
+          )
+          foreach ($f in $files) {
+            if (Test-Path $f) { Copy-Item $f $stage -Force }
+            else { Write-Error "缺少游戏文件: $f" }
+          }
+          $zipPath = Join-Path $env:GITHUB_WORKSPACE 'pc-launcher\game.zip'
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::CreateFromDirectory(
+            $stage, $zipPath,
+            [System.IO.Compression.CompressionLevel]::Optimal, $false,
+            [System.Text.Encoding]::UTF8)
+          Write-Host "game.zip 大小: $((Get-Item $zipPath).Length) 字节"
+
+      - name: NuGet 还原（含 WebView2）
+        shell: pwsh
+        run: |
+          msbuild pc-launcher/launcher_v340.csproj /t:restore /p:Configuration=Release /v:m
+
+      - name: 准备 WebView2 原生加载器（Costura 单文件）
+        shell: pwsh
+        run: |
+          $dir = 'pc-launcher/Costura64'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          $loader = Get-ChildItem -Path "$env:USERPROFILE\.nuget\packages\microsoft.web.webview2" `
+            -Recurse -Filter 'WebView2Loader.dll' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -like '*win-x64*' } | Select-Object -First 1
+          if (-not $loader) { throw '未找到 WebView2Loader.dll (win-x64)' }
+          Copy-Item $loader.FullName (Join-Path $dir 'WebView2Loader.dll') -Force
+          Write-Host "已暂存: $($loader.FullName)"
+
+      - name: MSBuild 编译（Costura 嵌入为单 exe）
+        shell: pwsh
+        run: |
+          msbuild pc-launcher/launcher_v340.csproj /p:Configuration=Release /p:Platform=x64 `
+            /p:DebugType=None /p:DebugSymbols=false /v:m
+
+      - name: 检查产物
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path 'pc-launcher/bin' -Recurse -Filter '方块突击.exe' | Select-Object -First 1
+          if (-not $exe) { throw '未找到编译产物 方块突击.exe' }
+          Write-Host "产物路径: $($exe.FullName)"
+          Write-Host "产物大小: $($exe.Length) 字节"
+          Write-Host '--- 输出目录内容（确认单文件） ---'
+          Get-ChildItem $exe.DirectoryName | ForEach-Object { Write-Host $_.Name }
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 方块突击-pc
+          path: pc-launcher/bin/**/方块突击.exe
+          if-no-files-found: error
+
+      - name: 发布到 Release v3.4.2
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v3.4.2
+          name: 方块突击 v3.4.2
+          body: |
+            ## 方块突击 v3.4.2
+
+            ### 电脑版（Windows）
+            下载 **方块突击.exe** 后双击运行，无需安装。
+            - 窗口内直接游玩（WebView2 内核，Win10/11 自带 Edge 即可）
+            - 暖色 FlClash 风格界面、自绘标题栏、F11 全屏
+            - 远程联机：创建/加入房间、随机进入、密码锁、快捷网址
+            - 新增火箭筒（按 5）、手雷改按 6，手雷伤害修复
+          files: pc-launcher/bin/**/方块突击.exe
+          fail_on_unmatched_files: true
