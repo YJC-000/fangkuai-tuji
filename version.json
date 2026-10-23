@@ -1,1 +1,1 @@
-{"version": "3.7.3", "changelog": ["网络修复：多源自动回退（GitHub 主源 + Cloudflare 备用），不再依赖单一服务器", "设置新增「联机服务器」选项：可手动指定自定义服务器地址", "性能深度优化：对象池复用、帧率自适应降载、敌人AI降频、渲染减负，游戏更流畅"], "apkUrl": "https://aka.doubaocdn.com/s/ewxupBulkw", "pcUrl": "https://aka.doubaocdn.com/s/yf8p74iuaL"}
+{"version":"3.7.3","changelog":["网络修复：多源自动回退（GitHub 主源 + Cloudflare 备用），不再依赖单一服务器","设置新增「联机服务器」选项：可手动指定自定义服务器地址","性能深度优化：对象池复用、帧率自适应降载、敌人AI降频、渲染减负，游戏更流畅"],"apkUrl":"https://aka.doubaocdn.com/s/ewxupBulkw","pcUrl":"https://aka.doubaocdn.com/s/yf8p74iuaL"}
