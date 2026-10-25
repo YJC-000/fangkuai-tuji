@@ -1,1 +1,1 @@
-{"version":"3.7.12","changelog":["彻底修复电脑版更新失败（打包产物验证+防御性路径检查）"],"apkUrl":"https://aka.doubaocdn.com/s/2QDrqK9JiK","pcUrl":"https://aka.doubaocdn.com/s/pt5PUOcqq3"}
+{"version":"3.7.13","changelog":["空手状态屏蔽按键/动态武器槽位/捡枪模型修复","载具耐久伤害机制（快速撞击：耐久-9%+玩家-5血/低速-1%/子弹分流+护甲叠加）","更新机制优化","删除游戏顶部状态栏（背包信息移至暂停界面）"],"apkUrl":"https://aka.doubaocdn.com/s/2VUnmoSUce","pcUrl":"https://aka.doubaocdn.com/s/kcZcGO7O1c"}
