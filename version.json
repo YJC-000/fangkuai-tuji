@@ -1,1 +1,1 @@
-{"version":"3.7.15","changelog":["彻底开放高楼顶部","修复手机作弊彩蛋进入错误界面（直接显示外挂面板）","空手按键完全屏蔽/动态武器槽位只显示已捡武器","血量与弹药移入ESC菜单"],"apkUrl":"https://aka.doubaocdn.com/s/uoK7udLodr","pcUrl":"https://aka.doubaocdn.com/s/7av0fjbyPw"}
+{"version":"3.7.16","changelog":["更新增加 sha256 校验（下载损坏自动重下，防止更新失败）"],"apkUrl":"https://aka.doubaocdn.com/s/4s8zxBBuHg","apkSha256":"7ac67d040d13a8899bdd27c01b624544d2fea42846f6357d3c0b7c04faf9cebf","pcUrl":"https://aka.doubaocdn.com/s/QGFYdkeYkW","pcSha256":"9d73ba3637236599c35a37edb7f475da66192ad16c398e49f3b2a4fc06183e58"}
